@@ -91,7 +91,7 @@ export default function Navbar() {
         <nav className="glass" style={{ position: 'sticky', top: 0, zIndex: 2000, margin: '20px', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backdropFilter: 'blur(12px) saturate(180%)', WebkitBackdropFilter: 'blur(12px) saturate(180%)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
-                    <img src="/logo.png" alt="Trills Logo" style={{ width: '40px', height: '40px', borderRadius: '10px' }} />
+                    <img src="/logo.png?v=1" alt="Trills Logo" style={{ width: '40px', height: '40px', borderRadius: '10px' }} />
                     <span className="title-font" style={{ fontSize: '1.5rem', fontWeight: '700', letterSpacing: '-1px' }}>Trills</span>
                 </a>
             </div>
