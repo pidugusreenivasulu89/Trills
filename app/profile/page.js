@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { mockConnections, checkInviteEligibility, designationOptions, locationOptions } from '@/lib/data';
 import { User, Mail, MapPin, Briefcase, Camera, Edit2, Users, CheckCircle, ShieldAlert, Send, ArrowRight, ShieldCheck, Loader2, Sparkles, AlertCircle, Calendar, Settings, Shield } from 'lucide-react';
 
-export default function ProfilePage() {
+function ProfileContent() {
     const [user, setUser] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -717,5 +717,13 @@ export default function ProfilePage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={<div className="container" style={{ textAlign: 'center', paddingTop: '100px', color: 'var(--text-muted)' }}>Loading...</div>}>
+            <ProfileContent />
+        </Suspense>
     );
 }
