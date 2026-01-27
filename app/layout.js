@@ -30,8 +30,8 @@ export default function RootLayout({ children }) {
 
           <footer style={{ marginTop: '40px', padding: '35px 0', borderTop: '1px solid var(--border-glass)', textAlign: 'center' }}>
             <div className="container">
-              <img src="/logo.png?v=1" alt="Trills Logo" style={{ width: '50px', height: '50px', borderRadius: '12px', marginBottom: '12px' }} />
-              <h2 className="title-font" style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Trills</h2>
+              <img src="/logo.png?v=2" alt="Trills Logo" style={{ width: '40px', height: '40px', borderRadius: '10px', marginBottom: '12px' }} />
+              <h2 className="title-font" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Trills</h2>
               <p style={{ color: 'var(--text-muted)', marginBottom: '20px', fontSize: '0.9rem' }}>From network to real places.</p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.85rem' }}>
                 <a href="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacy</a>
