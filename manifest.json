@@ -1,0 +1,21 @@
+{
+    "name": "Trills",
+    "short_name": "Trills",
+    "description": "Dine, Work, & Connect",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0c",
+    "theme_color": "#6366f1",
+    "icons": [
+        {
+            "src": "/window.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "/window.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml"
+        }
+    ]
+}
