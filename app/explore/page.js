@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Star, MapPin, Globe, Users, Clock, CheckCircle, Info, Filter, X, CreditCard, Lock } from 'lucide-react';
 
-export default function ExplorePage() {
+function ExploreContent() {
     const searchParams = useSearchParams();
     const typeFilter = searchParams.get('type');
 
@@ -354,5 +354,13 @@ export default function ExplorePage() {
                 .sold-out { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 800; font-size: 1.5rem; letter-spacing: 2px; }
             `}</style>
         </div>
+    );
+}
+
+export default function ExplorePage() {
+    return (
+        <Suspense fallback={<div className="container" style={{ paddingTop: '100px', textAlign: 'center' }}>Loading experiences...</div>}>
+            <ExploreContent />
+        </Suspense>
     );
 }
