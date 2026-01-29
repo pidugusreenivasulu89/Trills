@@ -37,7 +37,11 @@
     "@expo/json-file": "^10.0.8",
     "babel-preset-expo": "~11.0.0",
     "graphql": "^16.12.0",
-    "write-file-atomic": "^7.0.0"
+    "write-file-atomic": "^7.0.0",
+    "@expo/metro-config": "~0.18.11"
+  },
+  "resolutions": {
+    "@expo/metro-config": "~0.18.11"
   },
   "engines": {
     "node": ">=20.19.4"
