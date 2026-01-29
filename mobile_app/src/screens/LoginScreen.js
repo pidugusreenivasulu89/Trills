@@ -184,11 +184,7 @@ export default function LoginScreen({ navigation }) {
                         {/* Logo Section */}
                         <View style={styles.logoContainer}>
                             <View style={styles.logoSquare}>
-                                <Image
-                                    source={require('../../assets/logo.png')}
-                                    style={styles.logoImage}
-                                    resizeMode="contain"
-                                />
+                                <Text style={styles.logoEmoji}>🐦</Text>
                             </View>
                             <Text style={styles.appName}>Trills</Text>
                             <Text style={styles.tagline}>Connect. Share. Celebrate.</Text>
@@ -429,9 +425,8 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         overflow: 'hidden',
     },
-    logoImage: {
-        width: '100%',
-        height: '100%',
+    logoEmoji: {
+        fontSize: 60,
     },
     appName: {
         fontSize: 32,

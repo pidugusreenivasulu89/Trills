@@ -35,11 +35,7 @@ export default function HomeScreen({ navigation }) {
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Image
-                        source={require('../../assets/logo.png')}
-                        style={styles.logoSmall}
-                        resizeMode="contain"
-                    />
+                    <Text style={styles.logoSmall}>🐦</Text>
                     <Text style={styles.headerTitle}>Trills</Text>
                 </View>
 
@@ -164,9 +160,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     logoSmall: {
-        width: 36,
-        height: 36,
-        borderRadius: 8,
+        fontSize: 28,
     },
     headerTitle: {
         fontSize: 22,

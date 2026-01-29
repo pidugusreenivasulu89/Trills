@@ -180,11 +180,7 @@ export default function SignupScreen({ navigation }) {
                         {/* Logo Section */}
                         <View style={styles.logoContainer}>
                             <View style={styles.logoSquare}>
-                                <Image
-                                    source={require('../../assets/logo.png')}
-                                    style={styles.logoImage}
-                                    resizeMode="contain"
-                                />
+                                <Text style={styles.logoEmoji}>🐦</Text>
                             </View>
                             <Text style={styles.appName}>Create Account</Text>
                             <Text style={styles.tagline}>Join Trills today</Text>
@@ -439,9 +435,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         overflow: 'hidden',
     },
-    logoImage: {
-        width: '100%',
-        height: '100%',
+    logoEmoji: {
+        fontSize: 48,
     },
     appName: {
         fontSize: 28,
