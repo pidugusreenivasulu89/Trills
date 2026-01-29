@@ -29,11 +29,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "43eead56-fee7-4ef4-ad0e-7e0e8ee49d94"
-      }
-    },
     "owner": "sreeni89s-organization"
   }
 }
