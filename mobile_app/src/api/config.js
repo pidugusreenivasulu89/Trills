@@ -1,12 +1,8 @@
 import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
-    if (Platform.OS === 'web') {
-        // In browser testing, we always want the local backend on 3000
-        return 'http://localhost:3000/api';
-    }
-    // Fallback for physical devices - ALWAYS check your local IP with ipconfig/ifconfig
-    return 'http://192.168.31.29:3000/api';
+    // Live Production API URL
+    return 'https://main.d1xwm1nrlmqhof.amplifyapp.com/api';
 };
 
 export const API_BASE_URL = getBaseUrl();

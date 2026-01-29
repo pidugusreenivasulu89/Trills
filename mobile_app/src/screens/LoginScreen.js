@@ -94,7 +94,7 @@ export default function LoginScreen({ navigation }) {
             if (error.response) {
                 Alert.alert('Login Failed', error.response.data.error || 'Invalid credentials');
             } else if (error.request) {
-                Alert.alert('Network Error', 'The server is not responding. Please ensure your backend is running on port 3000.');
+                Alert.alert('Network Error', 'The server is currently unreachable. Please check your internet connection and try again later.');
             } else {
                 Alert.alert('Error', 'An unexpected error occurred. Please try again.');
             }

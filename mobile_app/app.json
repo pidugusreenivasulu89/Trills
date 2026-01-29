@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Socialvibe",
-    "slug": "socialvibe-mobile",
+    "name": "Trills",
+    "slug": "trills",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,17 +15,25 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.trills.app"
     },
     "android": {
+      "package": "com.trills.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4B184C"
-      },
-      "package": "com.trills.socialvibe"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "43eead56-fee7-4ef4-ad0e-7e0e8ee49d94"
+      }
+    },
+    "owner": "sreeni89s-organization"
   }
 }
