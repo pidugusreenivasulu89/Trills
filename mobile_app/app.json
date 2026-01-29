@@ -3,6 +3,7 @@
     "name": "Trills",
     "slug": "trills",
     "version": "1.0.0",
+    "sdkVersion": "51.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -29,6 +30,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "owner": "sreeni89s-organization"
+    "owner": "sreeni89s-organization",
+    "extra": {
+      "eas": {
+        "projectId": "8706a40c-88c5-439e-8bdc-858449b49349"
+      }
+    }
   }
 }
