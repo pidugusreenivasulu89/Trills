@@ -3,22 +3,26 @@ import Navbar from '@/components/Navbar';
 import BottomNav from '@/components/BottomNav';
 import { Providers } from '@/components/Providers';
 
+export const viewport = {
+  themeColor: '#6366f1',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata = {
   title: 'Trills | Dine, Work, & Connect',
   description: 'The ultimate social platform for booking premium dining, co-working spaces, and exclusive events.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-        <title>{metadata.title}</title>
-        <meta name="description" content={metadata.description} />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="theme-color" content="#6366f1" />
-      </head>
       <body>
         <Providers>
           <Navbar />
