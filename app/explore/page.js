@@ -9,11 +9,11 @@ export const metadata = {
     openGraph: {
         title: 'Explore Premium Venues - Restaurants & Coworking Spaces | Trills',
         description: 'Discover and book premium dining experiences, coworking spaces, and exclusive venues. Connect with professionals in curated spaces.',
-        url: 'https://trills.in/explore',
+        url: 'https://www.trills.in/explore',
         siteName: 'Trills',
         images: [
             {
-                url: 'https://trills.in/og-explore.jpg',
+                url: 'https://www.trills.in/og-explore.jpg',
                 width: 1200,
                 height: 630,
                 alt: 'Trills - Explore Premium Venues',
@@ -26,7 +26,7 @@ export const metadata = {
         card: 'summary_large_image',
         title: 'Explore Premium Venues - Restaurants & Coworking Spaces | Trills',
         description: 'Discover and book premium dining experiences, coworking spaces, and exclusive venues.',
-        images: ['https://trills.in/og-explore.jpg'],
+        images: ['https://www.trills.in/og-explore.jpg'],
     },
     robots: {
         index: true,
@@ -40,7 +40,7 @@ export const metadata = {
         },
     },
     alternates: {
-        canonical: 'https://trills.in/explore',
+        canonical: 'https://www.trills.in/explore',
     },
 };
 
@@ -59,23 +59,23 @@ export default function ExplorePage() {
                     "@type": "ListItem",
                     "position": 1,
                     "name": "Home",
-                    "item": "https://trills.in"
+                    "item": "https://www.trills.in"
                 },
                 {
                     "@type": "ListItem",
                     "position": 2,
                     "name": "Explore",
-                    "item": "https://trills.in/explore"
+                    "item": "https://www.trills.in/explore"
                 }
             ]
         },
         "publisher": {
             "@type": "Organization",
             "name": "Trills",
-            "url": "https://trills.in",
+            "url": "https://www.trills.in",
             "logo": {
                 "@type": "ImageObject",
-                "url": "https://trills.in/logo.png"
+                "url": "https://www.trills.in/logo.png"
             }
         }
     };

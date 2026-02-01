@@ -9,11 +9,11 @@ export const metadata = {
   openGraph: {
     title: 'Trills | Work, Dine & Connect',
     description: 'The ultimate social platform for booking premium dining experiences, co-working spaces, and exclusive events.',
-    url: 'https://trills.in',
+    url: 'https://www.trills.in',
     siteName: 'Trills',
     images: [
       {
-        url: 'https://trills.in/og-home.jpg',
+        url: 'https://www.trills.in/og-home.jpg',
         width: 1200,
         height: 630,
         alt: 'Trills - Work, Dine, & Connect',
@@ -26,10 +26,10 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Trills | Work, Dine & Connect',
     description: 'Discover the city\'s finest dining, premium co-working spaces, and exclusive social events.',
-    images: ['https://trills.in/og-home.jpg'],
+    images: ['https://www.trills.in/og-home.jpg'],
   },
   alternates: {
-    canonical: 'https://trills.in',
+    canonical: 'https://www.trills.in',
   },
 };
 
@@ -41,18 +41,18 @@ export default function Home() {
       {
         "@type": "WebSite",
         "name": "Trills",
-        "url": "https://trills.in",
+        "url": "https://www.trills.in",
         "potentialAction": {
           "@type": "SearchAction",
-          "target": "https://trills.in/explore?q={search_term_string}",
+          "target": "https://www.trills.in/explore?q={search_term_string}",
           "query-input": "required name=search_term_string"
         }
       },
       {
         "@type": "Organization",
         "name": "Trills",
-        "url": "https://trills.in",
-        "logo": "https://trills.in/logo.png",
+        "url": "https://www.trills.in",
+        "logo": "https://www.trills.in/logo.png",
         "sameAs": [
           "https://twitter.com/trills_app",
           "https://instagram.com/trills_app",
