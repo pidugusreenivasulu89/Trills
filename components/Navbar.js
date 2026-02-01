@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { notifications } from '@/lib/data';
 import NotificationCenter from './NotificationCenter';
 import { Home, Compass, Calendar, Layout, Bell, LogOut, User, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Navbar() {
     const [user, setUser] = useState(null);
@@ -90,25 +91,25 @@ export default function Navbar() {
     return (
         <nav className="glass" style={{ position: 'sticky', top: 0, zIndex: 2000, margin: '20px', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backdropFilter: 'blur(12px) saturate(180%)', WebkitBackdropFilter: 'blur(12px) saturate(180%)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
+                <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
                     <img src="/logo.png?v=2" alt="Trills Logo" style={{ width: '30px', height: '30px', borderRadius: '8px' }} />
                     <span className="title-font" style={{ fontSize: '1.4rem', fontWeight: '700', letterSpacing: '-1px' }}>Trills</span>
-                </a>
+                </Link>
             </div>
 
             <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
-                <a href="/" style={{ color: pathname === '/' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
+                <Link href="/" style={{ color: pathname === '/' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
                     <Home size={18} /> Home
-                </a>
-                <a href="/explore" style={{ color: pathname === '/explore' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/explore' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
+                </Link>
+                <Link href="/explore" style={{ color: pathname === '/explore' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/explore' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
                     <Compass size={18} /> Explore
-                </a>
-                <a href="/events" style={{ color: pathname === '/events' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/events' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
+                </Link>
+                <Link href="/events" style={{ color: pathname === '/events' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/events' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
                     <Calendar size={18} /> Events
-                </a>
-                <a href="/feed" style={{ color: pathname === '/feed' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/feed' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
+                </Link>
+                <Link href="/feed" style={{ color: pathname === '/feed' ? 'var(--primary)' : 'var(--text-main)', textDecoration: 'none', fontWeight: pathname === '/feed' ? '600' : '500', display: 'flex', alignItems: 'center', gap: '8px', transition: 'var(--transition)' }}>
                     <Layout size={18} /> Feed
-                </a>
+                </Link>
 
                 {/* Notification Bell - Only show if logged in */}
                 {user && (
@@ -136,7 +137,7 @@ export default function Navbar() {
 
                 {user ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <a href="/profile" style={{ display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: 'inherit', transition: '0.2s' }}>
+                        <Link href="/profile" style={{ display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: 'inherit', transition: '0.2s' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     Hi, {user.name.split(' ')[0]}
@@ -151,7 +152,7 @@ export default function Navbar() {
                                     {user.name.charAt(0)}
                                 </div>
                             )}
-                        </a>
+                        </Link>
                         <button
                             onClick={handleLogout}
                             className="btn-outline"
@@ -169,9 +170,9 @@ export default function Navbar() {
                         </button>
                     </div>
                 ) : (
-                    <a href="/login" className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Link href="/login" className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <User size={16} /> Sign In
-                    </a>
+                    </Link>
                 )}
             </div>
         </nav>
