@@ -11,7 +11,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  metadataBase: new URL('https://www.trills.in'),
+  metadataBase: new URL('https://trills.in'),
   title: 'Trills | Dine, Work, & Connect',
   description: 'The ultimate social platform for booking premium dining, co-working spaces, and exclusive events.',
   manifest: '/manifest.json',

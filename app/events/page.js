@@ -6,11 +6,11 @@ export const metadata = {
     openGraph: {
         title: 'Exclusive Events & Networking | Trills',
         description: 'Join the city\'s most exclusive social and professional events.',
-        url: 'https://www.trills.in/events',
-        images: [{ url: 'https://www.trills.in/og-events.jpg' }],
+        url: 'https://trills.in/events',
+        images: [{ url: 'https://trills.in/og-events.jpg' }],
     },
     alternates: {
-        canonical: 'https://www.trills.in/events',
+        canonical: 'https://trills.in/events',
     },
 };
 

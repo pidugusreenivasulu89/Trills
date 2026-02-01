@@ -1,82 +1,34 @@
-
 import ExploreClient from './ExploreClient';
 
 // SEO Metadata Configuration
 export const metadata = {
     title: 'Explore Premium Venues - Restaurants & Coworking Spaces | Trills',
-    description: 'Discover and book premium dining experiences, coworking spaces, and exclusive venues. Connect with professionals while enjoying curated restaurants, cafes, and workspaces. Book your table or desk now!',
-    keywords: 'premium restaurants, coworking spaces, book table online, dining experiences, workspace booking, professional networking, exclusive venues, restaurant reservations, desk booking, Trills',
+    description: 'Discover and book premium dining experiences and co-working spaces in your city with Trills. Real-time availability and instant booking.',
     openGraph: {
-        title: 'Explore Premium Venues - Restaurants & Coworking Spaces | Trills',
-        description: 'Discover and book premium dining experiences, coworking spaces, and exclusive venues. Connect with professionals in curated spaces.',
-        url: 'https://www.trills.in/explore',
-        siteName: 'Trills',
-        images: [
-            {
-                url: 'https://www.trills.in/og-explore.jpg',
-                width: 1200,
-                height: 630,
-                alt: 'Trills - Explore Premium Venues',
-            },
-        ],
-        locale: 'en_US',
-        type: 'website',
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Explore Premium Venues - Restaurants & Coworking Spaces | Trills',
-        description: 'Discover and book premium dining experiences, coworking spaces, and exclusive venues.',
-        images: ['https://www.trills.in/og-explore.jpg'],
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
+        title: 'Explore Premium Venues | Trills',
+        description: 'Find the perfect spot for work or leisure. Browse top-rated restaurants and coworking hubs near you.',
+        url: 'https://trills.in/explore',
+        images: [{ url: 'https://trills.in/og-explore.jpg' }],
     },
     alternates: {
-        canonical: 'https://www.trills.in/explore',
+        canonical: 'https://trills.in/explore',
     },
 };
 
 export default function ExplorePage() {
-    // Basic Organization Schema
+    // JSON-LD for Search Results Page
     const jsonLd = {
         "@context": "https://schema.org",
-        "@type": "WebPage",
-        "name": "Explore Premium Venues",
-        "description": metadata.description,
-        "url": metadata.openGraph.url,
+        "@type": "CollectionPage",
+        "name": "Explore Venues on Trills",
+        "description": "Browse our curated list of premium restaurants and coworking spaces.",
+        "url": "https://trills.in/explore",
         "breadcrumb": {
             "@type": "BreadcrumbList",
             "itemListElement": [
-                {
-                    "@type": "ListItem",
-                    "position": 1,
-                    "name": "Home",
-                    "item": "https://www.trills.in"
-                },
-                {
-                    "@type": "ListItem",
-                    "position": 2,
-                    "name": "Explore",
-                    "item": "https://www.trills.in/explore"
-                }
+                { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://trills.in" },
+                { "@type": "ListItem", "position": 2, "name": "Explore", "item": "https://trills.in/explore" }
             ]
-        },
-        "publisher": {
-            "@type": "Organization",
-            "name": "Trills",
-            "url": "https://www.trills.in",
-            "logo": {
-                "@type": "ImageObject",
-                "url": "https://www.trills.in/logo.png"
-            }
         }
     };
 
