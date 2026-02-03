@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from "next-auth/react";
+import { signInWithRedirect } from 'aws-amplify/auth';
 import './login.css';
 
 export default function LoginPage() {
@@ -14,6 +15,16 @@ export default function LoginPage() {
     const handleSocialLogin = async (platform) => {
         setIsAuthenticating(true);
         setAuthProvider(platform);
+
+        if (platform === 'Google') {
+            try {
+                await signInWithRedirect({ provider: 'Google' });
+            } catch (error) {
+                console.error("Amplify login error:", error);
+                setIsAuthenticating(false);
+            }
+            return;
+        }
 
         const result = await signIn(platform.toLowerCase(), {
             callbackUrl: '/onboarding',

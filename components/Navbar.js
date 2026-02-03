@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from "next-auth/react";
+import { getAmplifyUser, amplifySignOut } from '@/lib/auth';
 import { usePathname } from 'next/navigation';
 import { notifications } from '@/lib/data';
 import NotificationCenter from './NotificationCenter';
@@ -21,18 +22,34 @@ export default function Navbar() {
     }, []);
 
     useEffect(() => {
-        const checkUser = () => {
+        const checkUser = async () => {
             const storedUser = localStorage.getItem('user_profile');
+            let authUser = null;
 
             if (session?.user) {
+                authUser = {
+                    name: session.user.name,
+                    email: session.user.email,
+                    avatar: session.user.image
+                };
+            } else {
+                const ampUser = await getAmplifyUser();
+                if (ampUser) {
+                    authUser = {
+                        name: ampUser.name,
+                        email: ampUser.email,
+                        avatar: ampUser.avatar
+                    };
+                }
+            }
+
+            if (authUser) {
                 if (storedUser) {
                     const parsed = JSON.parse(storedUser);
 
-                    // If stored user matches session email OR hasn't been assigned an email yet
-                    if (!parsed.email || parsed.email === session.user.email) {
-                        // If it has no email, assign the current session email to "claim" this local profile
+                    if (!parsed.email || parsed.email === authUser.email) {
                         if (!parsed.email) {
-                            parsed.email = session.user.email;
+                            parsed.email = authUser.email;
                             localStorage.setItem('user_profile', JSON.stringify(parsed));
                         }
                         setUser(parsed);
@@ -40,11 +57,10 @@ export default function Navbar() {
                     }
                 }
 
-                // Initialize from session if no matching stored profile
                 const profile = {
-                    name: session.user.name,
-                    email: session.user.email,
-                    avatar: session.user.image,
+                    name: authUser.name,
+                    email: authUser.email,
+                    avatar: authUser.avatar,
                     designation: 'Member',
                     location: 'Earth',
                     bio: 'A passionate professional exploring the intersection of technology and lifestyle.',
@@ -53,7 +69,6 @@ export default function Navbar() {
                 localStorage.setItem('user_profile', JSON.stringify(profile));
                 setUser(profile);
             } else {
-                // No session, just check localStorage
                 if (storedUser) {
                     setUser(JSON.parse(storedUser));
                 } else {
@@ -82,9 +97,10 @@ export default function Navbar() {
         };
     }, [session, pathname]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         localStorage.removeItem('user_profile');
         setUser(null);
+        await amplifySignOut();
         signOut({ callbackUrl: '/login' });
     };
 
