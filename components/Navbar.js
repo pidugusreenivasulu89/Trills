@@ -69,10 +69,11 @@ export default function Navbar() {
                 localStorage.setItem('user_profile', JSON.stringify(profile));
                 setUser(profile);
             } else {
+                // If no authentication session found, clear user state and localStorage
+                setUser(null);
                 if (storedUser) {
-                    setUser(JSON.parse(storedUser));
-                } else {
-                    setUser(null);
+                    localStorage.removeItem('user_profile');
+                    window.dispatchEvent(new Event('userLogin'));
                 }
             }
         };
@@ -100,8 +101,9 @@ export default function Navbar() {
     const handleLogout = async () => {
         localStorage.removeItem('user_profile');
         setUser(null);
+        window.dispatchEvent(new Event('userLogin'));
         await amplifySignOut();
-        signOut({ callbackUrl: '/login' });
+        signOut({ callbackUrl: '/' });
     };
 
     return (

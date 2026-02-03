@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { mockConnections, checkInviteEligibility, designationOptions, locationOptions } from '@/lib/data';
 import { User, Mail, MapPin, Briefcase, Camera, Edit2, Users, CheckCircle, ShieldAlert, Send, ArrowRight, ShieldCheck, Loader2, Sparkles, AlertCircle, Calendar, Settings, Shield } from 'lucide-react';
 
@@ -20,6 +20,7 @@ function ProfileContent() {
 
     const [isLoading, setIsLoading] = useState(true);
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     const [connectionCount, setConnectionCount] = useState(mockConnections.length);
 
@@ -51,6 +52,10 @@ function ProfileContent() {
                 if (searchParams.get('verify') === 'true' && !userData.verified) {
                     setIsVerifying(true);
                 }
+            } else {
+                setUser(null);
+                // If the user logs out while on the profile page, redirect them home
+                router.push('/');
             }
             setIsLoading(false);
         };

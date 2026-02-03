@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { activityFeed, mockConnections, venues, events } from '@/lib/data';
 import { Heart, MessageSquare, Share2, Image as ImageIcon, Link as LinkIcon, Send, MoreHorizontal, X, Shield, EyeOff, UserX, CheckCircle, UserPlus, MapPin, Calendar, ArrowRight, Star } from 'lucide-react';
 
@@ -25,11 +26,17 @@ export default function FeedPage() {
     const [hiddenPostIds, setHiddenPostIds] = useState([]);
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [toastMessage, setToastMessage] = useState('');
+    const router = useRouter();
 
     useEffect(() => {
         const checkUser = () => {
             const stored = localStorage.getItem('user_profile');
-            if (stored) setUser(JSON.parse(stored));
+            if (stored) {
+                setUser(JSON.parse(stored));
+            } else {
+                setUser(null);
+                router.push('/');
+            }
         };
 
         checkUser();
