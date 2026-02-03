@@ -361,17 +361,6 @@ export default function SignupScreen({ navigation }) {
                                     </View>
                                     <Text style={[styles.socialButtonText, { color: '#4B184C' }]}>Facebook</Text>
                                 </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.socialButton, { backgroundColor: '#FDF4FF', borderColor: '#FBCFE8' }]}
-                                    onPress={() => handleSocialSignup('LinkedIn')}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={[styles.socialIconContainer, { backgroundColor: '#4B184C' }]}>
-                                        <Text style={[styles.socialIcon, { color: '#ffffff' }]}>in</Text>
-                                    </View>
-                                    <Text style={[styles.socialButtonText, { color: '#4B184C' }]}>LinkedIn</Text>
-                                </TouchableOpacity>
                             </View>
 
                             {/* Login Link */}

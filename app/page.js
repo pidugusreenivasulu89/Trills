@@ -55,8 +55,7 @@ export default function Home() {
         "logo": "https://trills.in/logo.png",
         "sameAs": [
           "https://twitter.com/trills_app",
-          "https://instagram.com/trills_app",
-          "https://linkedin.com/company/trills"
+          "https://instagram.com/trills_app"
         ],
         "contactPoint": {
           "@type": "ContactPoint",

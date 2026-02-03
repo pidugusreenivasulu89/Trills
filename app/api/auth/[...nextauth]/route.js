@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import LinkedInProvider from "next-auth/providers/linkedin";
 import FacebookProvider from "next-auth/providers/facebook";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
@@ -10,24 +9,6 @@ export const authOptions = {
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        }),
-        LinkedInProvider({
-            clientId: process.env.LINKEDIN_CLIENT_ID,
-            clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-            clientType: 'confidential',
-            authorization: {
-                params: { scope: 'openid profile email' },
-            },
-            issuer: 'https://www.linkedin.com',
-            jwks_endpoint: 'https://www.linkedin.com/oauth/openid/jwks',
-            profile(profile) {
-                return {
-                    id: profile.sub,
-                    name: profile.name,
-                    email: profile.email,
-                    image: profile.picture,
-                };
-            },
         }),
         FacebookProvider({
             clientId: process.env.FACEBOOK_CLIENT_ID,
