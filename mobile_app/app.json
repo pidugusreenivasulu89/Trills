@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.trills.app",
-      "versionCode": 1,
+      "versionCode": 13,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4B184C"
