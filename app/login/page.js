@@ -16,20 +16,15 @@ export default function LoginPage() {
         setIsAuthenticating(true);
         setAuthProvider(platform);
 
-        if (platform === 'Google') {
-            try {
-                await signInWithRedirect({ provider: 'Google' });
-            } catch (error) {
-                console.error("Amplify login error:", error);
-                setIsAuthenticating(false);
-            }
-            return;
+        try {
+            await signIn(platform.toLowerCase(), {
+                callbackUrl: '/feed', // Changed from /onboarding to /feed since we handle onboarding/username in the backend callback now
+                redirect: true
+            });
+        } catch (error) {
+            console.error(`${platform} login error:`, error);
+            setIsAuthenticating(false);
         }
-
-        const result = await signIn(platform.toLowerCase(), {
-            callbackUrl: '/onboarding',
-            redirect: true
-        });
     };
 
     if (isAuthenticating) {
