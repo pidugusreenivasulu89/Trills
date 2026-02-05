@@ -16,9 +16,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
-import axios from 'axios';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
+import * as WebBrowser from 'expo-web-browser';
 
+import axios from 'axios';
 import { API_BASE_URL } from '../api/config';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,6 +40,72 @@ export default function LoginScreen({ navigation }) {
     const [otp, setOtp] = useState('');
     const [isPhoneLogin, setIsPhoneLogin] = useState(false);
     const [isOtpSent, setIsOtpSent] = useState(false);
+
+    // Google Auth
+    const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+        androidClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
+        iosClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
+        expoClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
+    });
+
+    // Facebook Auth
+    const [facebookRequest, facebookResponse, facebookPromptAsync] = Facebook.useAuthRequest({
+        clientId: '1667532970748314',
+    });
+
+    React.useEffect(() => {
+        if (googleResponse?.type === 'success') {
+            const { authentication } = googleResponse;
+            handleSocialBackendLogin('google', authentication.accessToken);
+        }
+    }, [googleResponse]);
+
+    React.useEffect(() => {
+        if (facebookResponse?.type === 'success') {
+            const { authentication } = facebookResponse;
+            handleSocialBackendLogin('facebook', authentication.accessToken);
+        }
+    }, [facebookResponse]);
+
+    const handleSocialBackendLogin = async (provider, token) => {
+        try {
+            setIsLoading(true);
+            // Fetch user info from provider if needed, or send token to backend
+            let userInfoUrl = '';
+            if (provider === 'google') {
+                userInfoUrl = 'https://www.googleapis.com/userinfo/v2/me';
+            } else {
+                userInfoUrl = `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${token}`;
+            }
+
+            const userInfoRes = await axios.get(userInfoUrl, provider === 'google' ? {
+                headers: { Authorization: `Bearer ${token}` }
+            } : {});
+
+            const userData = userInfoRes.data;
+            const payload = {
+                name: userData.name,
+                email: userData.email || (provider === 'facebook' ? `${userData.id}@facebook.com` : ''),
+                image: provider === 'google' ? userData.picture : userData.picture?.data?.url,
+                provider: provider,
+                providerId: userData.id
+            };
+
+            const response = await axios.post(`${API_BASE_URL}/users/social-auth`, payload);
+
+            if (response.data && response.data.user) {
+                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+                navigation.replace('MainTabs');
+            } else {
+                Alert.alert('Login Failed', 'Failed to synchronize with server');
+            }
+        } catch (error) {
+            console.error(`${provider} login error:`, error);
+            Alert.alert('Login Error', `Failed to login with ${provider}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const animateButton = (scale) => {
         Animated.spring(buttonScale, {
@@ -104,8 +175,11 @@ export default function LoginScreen({ navigation }) {
     };
 
     const handleSocialLogin = (provider) => {
-        console.log(`Login with ${provider}`);
-        navigation.replace('MainTabs');
+        if (provider === 'Google') {
+            googlePromptAsync();
+        } else if (provider === 'Facebook') {
+            facebookPromptAsync();
+        }
     };
 
     const handleSendOtp = async () => {

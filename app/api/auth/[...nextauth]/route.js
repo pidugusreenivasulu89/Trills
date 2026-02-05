@@ -26,21 +26,44 @@ export const authOptions = {
             return session;
         },
         async signIn({ user, account, profile }) {
-            await dbConnect();
-            const existingUser = await User.findOne({ email: user.email });
-            if (!existingUser) {
-                await User.create({
-                    name: user.name,
-                    email: user.email,
-                    image: user.image,
-                    verified: false
-                });
+            try {
+                await dbConnect();
+                const existingUser = await User.findOne({ email: user.email });
+                if (!existingUser) {
+                    // Generate a unique username from email
+                    let baseUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-0]/g, '');
+                    let username = baseUsername;
+                    let counter = 1;
+
+                    // Check if username already exists and increment if it does
+                    while (await User.findOne({ username })) {
+                        username = `${baseUsername}${counter}`;
+                        counter++;
+                    }
+
+                    await User.create({
+                        name: user.name,
+                        username: username,
+                        email: user.email,
+                        image: user.image,
+                        authProvider: account.provider,
+                        verified: false
+                    });
+                } else if (!existingUser.authProvider || existingUser.authProvider === 'email') {
+                    // Update existing user's authProvider if it was previously email or not set
+                    existingUser.authProvider = account.provider;
+                    await existingUser.save();
+                }
+                return true;
+            } catch (error) {
+                console.error("Error in signIn callback:", error);
+                return false;
             }
-            return true;
         },
     },
     pages: {
         signIn: '/login',
+        error: '/auth/error',
     },
 };
 
