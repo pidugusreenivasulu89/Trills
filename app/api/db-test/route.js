@@ -4,10 +4,13 @@ import mongoose from 'mongoose';
 
 export async function GET() {
     const envState = {
-        hasUri: !!process.env.MONGODB_URI,
-        uriPrefix: process.env.MONGODB_URI ? process.env.MONGODB_URI.split('@')[0].substring(0, 15) + '...' : 'none',
+        hasMongoUri: !!process.env.MONGODB_URI,
+        hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+        hasGoogleId: !!process.env.GOOGLE_CLIENT_ID,
+        hasGoogleSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+        hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
         nodeEnv: process.env.NODE_ENV,
-        deployedAt: '2026-02-06 19:15:00 IST'
+        deployedAt: '2026-02-06 20:12:00 IST'
     };
 
     try {
