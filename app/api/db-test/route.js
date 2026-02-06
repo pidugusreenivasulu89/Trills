@@ -7,7 +7,7 @@ export async function GET() {
         hasUri: !!process.env.MONGODB_URI,
         uriPrefix: process.env.MONGODB_URI ? process.env.MONGODB_URI.split('@')[0].substring(0, 15) + '...' : 'none',
         nodeEnv: process.env.NODE_ENV,
-        deployedAt: '2026-02-06 18:35:00 IST'
+        deployedAt: '2026-02-06 18:59:00 IST'
     };
 
     try {
