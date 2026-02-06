@@ -8,9 +8,11 @@ export async function GET() {
         hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
         hasGoogleId: !!process.env.GOOGLE_CLIENT_ID,
         hasGoogleSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+        hasFacebookId: !!process.env.FACEBOOK_CLIENT_ID,
+        hasFacebookSecret: !!process.env.FACEBOOK_CLIENT_SECRET,
         hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
         nodeEnv: process.env.NODE_ENV,
-        deployedAt: '2026-02-06 20:12:00 IST'
+        deployedAt: '2026-02-06 23:12:00 IST'
     };
 
     try {

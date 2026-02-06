@@ -11,6 +11,8 @@ frontend:
         - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env.production
         - echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env.production
         - echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env.production
+        - echo "FACEBOOK_CLIENT_ID=$FACEBOOK_CLIENT_ID" >> .env.production
+        - echo "FACEBOOK_CLIENT_SECRET=$FACEBOOK_CLIENT_SECRET" >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next
