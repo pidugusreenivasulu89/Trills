@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from "next-auth/react";
-import { signInWithRedirect } from 'aws-amplify/auth';
 import './login.css';
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const error = searchParams.get('error');
+
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [authProvider, setAuthProvider] = useState('');
     const [hoveredButton, setHoveredButton] = useState(null);
@@ -18,7 +20,7 @@ export default function LoginPage() {
 
         try {
             await signIn(platform.toLowerCase(), {
-                callbackUrl: '/feed', // Changed from /onboarding to /feed since we handle onboarding/username in the backend callback now
+                callbackUrl: '/feed',
                 redirect: true
             });
         } catch (error) {
@@ -64,6 +66,31 @@ export default function LoginPage() {
                     <h1 className="title-font welcome-title">Welcome to Trills</h1>
                     <p className="welcome-subtitle">Connect, share, and discover amazing experiences</p>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className="error-alert" style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid #ef4444',
+                        color: '#ef4444',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        marginBottom: '24px',
+                        fontSize: '0.9rem',
+                        textAlign: 'center'
+                    }}>
+                        <strong>Login Failed:</strong> {
+                            error === 'OAuthSignin' ? 'Could not reach the authentication provider.' :
+                                error === 'OAuthCallback' ? 'Problem returning from the provider.' :
+                                    error === 'OAuthCreateAccount' ? 'Could not create your account in our database.' :
+                                        error === 'Callback' ? 'Problem with the sign in process.' :
+                                            error === 'AccessDenied' ? 'Login was canceled or denied.' :
+                                                'An unexpected error occurred. Please try again.'
+                        }
+                        <br />
+                        <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Error code: {error}</span>
+                    </div>
+                )}
 
                 {/* Social login buttons */}
                 <div className="social-buttons">
@@ -141,5 +168,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="login-container"><div className="spinner"></div></div>}>
+            <LoginContent />
+        </Suspense>
     );
 }

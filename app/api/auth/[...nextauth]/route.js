@@ -27,11 +27,14 @@ export const authOptions = {
         },
         async signIn({ user, account, profile }) {
             try {
+                console.log("NextAuth: Starting signIn callback for", user.email);
                 await dbConnect();
+
                 const existingUser = await User.findOne({ email: user.email });
                 if (!existingUser) {
+                    console.log("NextAuth: Creating new user for", user.email);
                     // Generate a unique username from email
-                    let baseUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-0]/g, '');
+                    let baseUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
                     let username = baseUsername;
                     let counter = 1;
 
@@ -49,14 +52,19 @@ export const authOptions = {
                         authProvider: account.provider,
                         verified: false
                     });
-                } else if (!existingUser.authProvider || existingUser.authProvider === 'email') {
-                    // Update existing user's authProvider if it was previously email or not set
-                    existingUser.authProvider = account.provider;
-                    await existingUser.save();
+                    console.log("NextAuth: User created successfully");
+                } else {
+                    console.log("NextAuth: Existing user found for", user.email);
+                    if (!existingUser.authProvider || existingUser.authProvider === 'email') {
+                        // Update existing user's authProvider if it was previously email or not set
+                        existingUser.authProvider = account.provider;
+                        await existingUser.save();
+                        console.log("NextAuth: Updated authProvider for existing user");
+                    }
                 }
                 return true;
             } catch (error) {
-                console.error("Error in signIn callback:", error);
+                console.error("NextAuth: Error in signIn callback:", error);
                 return false;
             }
         },
