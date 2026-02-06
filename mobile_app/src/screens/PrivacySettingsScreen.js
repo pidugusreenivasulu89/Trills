@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { Shield, Eye, Lock, Bell, ChevronRight } from 'lucide-react-native';
 
-export default function PrivacySettingsScreen() {
+export default function PrivacySettingsScreen({ navigation }) {
     const [privacyStates, setPrivacyStates] = useState({
         profileVisible: true,
         showActivity: true,
@@ -82,7 +82,10 @@ export default function PrivacySettingsScreen() {
                     />
                 </View>
 
-                <TouchableOpacity style={styles.footerLink}>
+                <TouchableOpacity
+                    style={styles.footerLink}
+                    onPress={() => navigation.navigate('PrivacyPolicy')}
+                >
                     <Text style={styles.footerText}>Read our Full Privacy Policy</Text>
                     <ChevronRight size={16} color="#4B184C" />
                 </TouchableOpacity>

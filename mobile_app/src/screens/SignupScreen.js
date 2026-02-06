@@ -303,6 +303,13 @@ export default function SignupScreen({ navigation }) {
                                     >
                                         Terms & Conditions
                                     </Text>
+                                    {' '}and{' '}
+                                    <Text
+                                        style={styles.termsLink}
+                                        onPress={() => navigation.navigate('PrivacyPolicy')}
+                                    >
+                                        Privacy Policy
+                                    </Text>
                                     {' '}of using Trills.
                                 </Text>
                             </View>

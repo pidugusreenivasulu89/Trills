@@ -23,6 +23,7 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 import VerificationScreen from './src/screens/VerificationScreen';
 import PaymentsScreen from './src/screens/PaymentsScreen';
 import PrivacySettingsScreen from './src/screens/PrivacySettingsScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import CommentsScreen from './src/screens/CommentsScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import TermsScreen from './src/screens/TermsScreen';
@@ -109,6 +110,7 @@ export default function App() {
                     <Stack.Screen name="Verification" component={VerificationScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="Payments" component={PaymentsScreen} options={{ headerShown: true, title: 'Payment Methods' }} />
                     <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} options={{ headerShown: true, title: 'Privacy Settings' }} />
+                    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="Comments" component={CommentsScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />

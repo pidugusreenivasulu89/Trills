@@ -18,10 +18,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trills.app"
+      "bundleIdentifier": "com.trills.socialvibe"
     },
     "android": {
-      "package": "com.trills.app",
+      "package": "com.trills.socialvibe",
       "versionCode": 13,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
