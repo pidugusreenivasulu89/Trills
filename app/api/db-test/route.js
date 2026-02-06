@@ -3,8 +3,23 @@ import dbConnect from '@/lib/db';
 import mongoose from 'mongoose';
 
 export async function GET() {
+    const envState = {
+        hasUri: !!process.env.MONGODB_URI,
+        uriPrefix: process.env.MONGODB_URI ? process.env.MONGODB_URI.split('@')[0].substring(0, 15) + '...' : 'none',
+        nodeEnv: process.env.NODE_ENV,
+    };
+
     try {
-        console.log('API DB Test: Attempting connection');
+        console.log('API DB Test: Checking connection with env:', envState);
+
+        if (!process.env.MONGODB_URI) {
+            return NextResponse.json({
+                status: 'error',
+                message: 'MONGODB_URI is missing from Amplify environment variables.',
+                env: envState
+            }, { status: 500 });
+        }
+
         await dbConnect();
 
         const state = mongoose.connection.readyState;
@@ -19,7 +34,8 @@ export async function GET() {
             status: 'success',
             message: 'Database connection established',
             readyState: states[state],
-            dbName: mongoose.connection.name
+            dbName: mongoose.connection.name,
+            env: envState
         });
     } catch (error) {
         console.error('API DB Test Error:', error);
@@ -27,7 +43,8 @@ export async function GET() {
             status: 'error',
             message: error.message,
             code: error.code || 'UNKNOWN',
-            tip: 'If this is a timeout, check your MongoDB Atlas Network Access (IP Whitelist).'
+            env: envState,
+            tip: 'Check your MongoDB Atlas Network Access (IP Whitelist 0.0.0.0/0).'
         }, { status: 500 });
     }
 }
