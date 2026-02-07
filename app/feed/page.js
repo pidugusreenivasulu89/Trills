@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react";
 import { activityFeed, mockConnections, venues, events } from '@/lib/data';
 import { Heart, MessageSquare, Share2, Image as ImageIcon, Link as LinkIcon, Send, MoreHorizontal, X, Shield, EyeOff, UserX, CheckCircle, UserPlus, MapPin, Calendar, ArrowRight, Star } from 'lucide-react';
 
@@ -27,12 +28,19 @@ export default function FeedPage() {
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [toastMessage, setToastMessage] = useState('');
     const router = useRouter();
+    const { data: session, status: sessionStatus } = useSession();
 
     useEffect(() => {
         const checkUser = () => {
+            // Wait for session to be determined
+            if (sessionStatus === 'loading') return;
+
             const stored = localStorage.getItem('user_profile');
             if (stored) {
                 setUser(JSON.parse(stored));
+            } else if (session) {
+                // Navbar will handle populating localStorage, we just wait
+                return;
             } else {
                 setUser(null);
                 router.push('/');

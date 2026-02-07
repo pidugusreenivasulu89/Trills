@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react";
 import { mockConnections, checkInviteEligibility, designationOptions, locationOptions } from '@/lib/data';
 import { User, Mail, MapPin, Briefcase, Camera, Edit2, Users, CheckCircle, ShieldAlert, Send, ArrowRight, ShieldCheck, Loader2, Sparkles, AlertCircle, Calendar, Settings, Shield } from 'lucide-react';
 
@@ -21,11 +22,14 @@ function ProfileContent() {
     const [isLoading, setIsLoading] = useState(true);
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { data: session, status: sessionStatus } = useSession();
 
     const [connectionCount, setConnectionCount] = useState(mockConnections.length);
 
     useEffect(() => {
         const checkUser = async () => {
+            if (sessionStatus === 'loading') return;
+
             const stored = localStorage.getItem('user_profile');
             if (stored) {
                 const userData = JSON.parse(stored);
@@ -52,6 +56,9 @@ function ProfileContent() {
                 if (searchParams.get('verify') === 'true' && !userData.verified) {
                     setIsVerifying(true);
                 }
+            } else if (session) {
+                // Wait for Navbar to populate localStorage
+                return;
             } else {
                 setUser(null);
                 // If the user logs out while on the profile page, redirect them home

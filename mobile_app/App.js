@@ -3,7 +3,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Compass, MessageSquare, User, Bell } from 'lucide-react-native';
 
 // Auth Screens
 import WelcomeScreen from './src/screens/WelcomeScreen';
@@ -13,6 +12,7 @@ import SignupScreen from './src/screens/SignupScreen';
 // Main Screens
 import HomeScreen from './src/screens/HomeScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
+import EventsScreen from './src/screens/EventsScreen';
 import FeedScreen from './src/screens/FeedScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
@@ -29,6 +29,8 @@ import UserProfileScreen from './src/screens/UserProfileScreen';
 import TermsScreen from './src/screens/TermsScreen';
 import AdminScreen from './src/screens/AdminScreen';
 
+import { Home as HomeIcon, Compass, Calendar, MessageSquare, User } from 'lucide-react-native';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -41,18 +43,23 @@ function TabNavigator() {
                     backgroundColor: '#ffffff',
                     borderTopWidth: 1,
                     borderTopColor: '#f0f0f0',
-                    height: 60,
-                    paddingBottom: 10,
+                    height: 65,
+                    paddingBottom: 12,
+                    paddingTop: 8,
                 },
                 tabBarActiveTintColor: '#4B184C',
                 tabBarInactiveTintColor: '#64748b',
+                tabBarLabelStyle: {
+                    fontSize: 10,
+                    fontWeight: '600',
+                }
             }}
         >
             <Tab.Screen
-                name="Dashboard"
+                name="Home"
                 component={HomeScreen}
                 options={{
-                    tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <HomeIcon color={color} size={size} />,
                 }}
             />
             <Tab.Screen
@@ -63,17 +70,17 @@ function TabNavigator() {
                 }}
             />
             <Tab.Screen
+                name="Events"
+                component={EventsScreen}
+                options={{
+                    tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
+                }}
+            />
+            <Tab.Screen
                 name="Feed"
                 component={FeedScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
-                }}
-            />
-            <Tab.Screen
-                name="Inbox"
-                component={NotificationsScreen}
-                options={{
-                    tabBarIcon: ({ color, size }) => <Bell color={color} size={size} />,
                 }}
             />
             <Tab.Screen

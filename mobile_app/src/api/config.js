@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
     // Live Production API URL
-    return 'https://main.d1xwm1nrlmqhof.amplifyapp.com/api';
+    return 'https://www.trills.in/api';
 };
 
 export const API_BASE_URL = getBaseUrl();
