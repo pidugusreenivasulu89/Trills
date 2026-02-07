@@ -9,7 +9,8 @@ export default function RegisterPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
-        name: '',
+        firstName: '',
+        lastName: '',
         username: '',
         email: '',
         password: '',
@@ -25,11 +26,12 @@ export default function RegisterPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: formData.name,
+                    name: `${formData.firstName} ${formData.lastName}`.trim(),
                     username: formData.username,
                     email: formData.email,
                     password: formData.password,
-                    authProvider: 'email'
+                    authProvider: 'email',
+                    image: formData.avatar
                 })
             });
 
@@ -38,7 +40,7 @@ export default function RegisterPage() {
             if (res.ok) {
                 // Store initial profile data
                 const profile = {
-                    name: formData.name,
+                    name: `${formData.firstName} ${formData.lastName}`.trim(),
                     email: formData.email,
                     avatar: formData.avatar || 'https://i.pravatar.cc/150?u=' + formData.username,
                     designation: 'Member',
@@ -125,51 +127,64 @@ export default function RegisterPage() {
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '10px' }}>A great photo helps you stand out</p>
                     </div>
 
-                    <div style={{ position: 'relative' }}>
-                        <User size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)' }} />
-                        <input
-                            type="text"
-                            placeholder="Full Name"
-                            required
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'white', outline: 'none' }}
-                        />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div style={{ position: 'relative' }}>
+                            <User size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                            <input
+                                type="text"
+                                placeholder="First Name"
+                                required
+                                value={formData.firstName}
+                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
+                            />
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder="Last Name"
+                                required
+                                value={formData.lastName}
+                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
+                            />
+                        </div>
                     </div>
 
                     <div style={{ position: 'relative' }}>
-                        <AtSign size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)' }} />
+                        <AtSign size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                         <input
                             type="text"
                             placeholder="Username"
                             required
                             value={formData.username}
                             onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase() })}
-                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'white', outline: 'none' }}
+                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
                         />
                     </div>
 
                     <div style={{ position: 'relative' }}>
-                        <Mail size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)' }} />
+                        <Mail size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                         <input
                             type="email"
                             placeholder="Email Address"
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'white', outline: 'none' }}
+                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
                         />
                     </div>
 
                     <div style={{ position: 'relative' }}>
-                        <Lock size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)' }} />
+                        <Lock size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                         <input
                             type="password"
                             placeholder="Password"
                             required
+                            autoComplete="new-password"
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'white', outline: 'none' }}
+                            style={{ width: '100%', padding: '14px 14px 14px 45px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
                         />
                     </div>
 

@@ -9,7 +9,8 @@ export default function OnboardingPage() {
     const router = useRouter();
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
-        name: '',
+        firstName: '',
+        lastName: '',
         designation: '',
         location: '',
         interests: [],
@@ -21,6 +22,12 @@ export default function OnboardingPage() {
         const stored = localStorage.getItem('user_profile');
         if (stored) {
             const parsed = JSON.parse(stored);
+            // Split name if it comes from a combined 'name' field
+            if (parsed.name && !parsed.firstName) {
+                const parts = parsed.name.split(' ');
+                parsed.firstName = parts[0];
+                parsed.lastName = parts.slice(1).join(' ');
+            }
             setFormData(prev => ({ ...prev, ...parsed }));
         }
     }, []);
@@ -66,13 +73,47 @@ export default function OnboardingPage() {
         }
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step < 3) setStep(step + 1);
         else {
-            // Complete onboarding
-            localStorage.setItem('user_profile', JSON.stringify(formData));
-            window.dispatchEvent(new Event('userLogin'));
-            router.push('/');
+            try {
+                // Complete onboarding - Save to DB
+                const res = await fetch('/api/users/profile', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: formData.email,
+                        name: `${formData.firstName} ${formData.lastName}`.trim(),
+                        designation: formData.designation,
+                        location: formData.location,
+                        interests: formData.interests,
+                        avatar: formData.avatar
+                    })
+                });
+
+                if (res.ok) {
+                    const finalProfile = {
+                        ...formData,
+                        name: `${formData.firstName} ${formData.lastName}`.trim()
+                    };
+                    localStorage.setItem('user_profile', JSON.stringify(finalProfile));
+                    window.dispatchEvent(new Event('userLogin'));
+                    router.push('/');
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to save profile. Please try again.');
+                }
+            } catch (error) {
+                console.error('Onboarding save error:', error);
+                alert('An error occurred. Saving locally...');
+                // Fallback to local storage only
+                localStorage.setItem('user_profile', JSON.stringify({
+                    ...formData,
+                    name: `${formData.firstName} ${formData.lastName}`.trim()
+                }));
+                window.dispatchEvent(new Event('userLogin'));
+                router.push('/');
+            }
         }
     };
 
@@ -151,15 +192,27 @@ export default function OnboardingPage() {
                                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '10px' }}>Click to upload profile picture</p>
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Full Name</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="e.g. Alex Rivera"
-                                    style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}
-                                />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>First Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.firstName}
+                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                        placeholder="Alex"
+                                        style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.lastName}
+                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                        placeholder="Rivera"
+                                        style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Designation</label>
@@ -277,7 +330,7 @@ export default function OnboardingPage() {
                         onClick={handleNext}
                         className="btn-primary"
                         style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
-                        disabled={(step === 1 && !formData.name) || (step === 2 && !formData.location) || (step === 3 && formData.interests.length < 1)}
+                        disabled={(step === 1 && !formData.firstName) || (step === 2 && !formData.location) || (step === 3 && formData.interests.length < 1)}
                     >
                         {step === 3 ? 'Finish' : 'Next Step'} <ChevronRight size={18} />
                     </button>

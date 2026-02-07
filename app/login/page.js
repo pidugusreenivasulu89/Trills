@@ -184,16 +184,16 @@ function LoginContent() {
                         name="email"
                         placeholder="Email Address"
                         required
-                        style={{ padding: '12px 20px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
+                        style={{ padding: '14px 20px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
                     />
                     <input
                         type="password"
                         name="password"
                         placeholder="Password"
                         required
-                        style={{ padding: '12px 20px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
+                        style={{ padding: '14px 20px', borderRadius: '12px', background: 'rgba(75, 24, 76, 0.03)', border: '1px solid rgba(75, 24, 76, 0.12)', color: 'var(--text-main)', outline: 'none' }}
                     />
-                    <button type="submit" className="btn-primary" style={{ padding: '12px', borderRadius: '12px', fontWeight: 'bold' }}>
+                    <button type="submit" className="btn-primary" style={{ padding: '14px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
                         Sign In with Email
                     </button>
                 </form>
