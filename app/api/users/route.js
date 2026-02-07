@@ -27,7 +27,10 @@ export async function GET(request) {
                     id: user._id,
                     name: user.name,
                     email: user.email,
-                    verified: user.verified
+                    verified: user.verified,
+                    designation: user.designation,
+                    location: user.location,
+                    image: user.image
                 }
             }, { headers: corsHeaders });
         }

@@ -27,11 +27,35 @@ export default function Navbar() {
             let authUser = null;
 
             if (session?.user) {
-                authUser = {
-                    name: session.user.name,
-                    email: session.user.email,
-                    avatar: session.user.image
-                };
+                // Social Login: Fetch full profile from DB if not in localStorage or if we need to sync
+                try {
+                    const res = await fetch(`/api/users?email=${session.user.email}`);
+                    const data = await res.json();
+
+                    if (data.success && data.user) {
+                        authUser = {
+                            name: data.user.name || session.user.name,
+                            email: data.user.email,
+                            avatar: data.user.image || session.user.image,
+                            designation: data.user.designation,
+                            location: data.user.location,
+                            verified: data.user.verified
+                        };
+                    } else {
+                        // Fallback to session data
+                        authUser = {
+                            name: session.user.name,
+                            email: session.user.email,
+                            avatar: session.user.image
+                        };
+                    }
+                } catch (e) {
+                    authUser = {
+                        name: session.user.name,
+                        email: session.user.email,
+                        avatar: session.user.image
+                    };
+                }
             } else {
                 const ampUser = await getAmplifyUser();
                 if (ampUser) {
@@ -48,8 +72,14 @@ export default function Navbar() {
                     const parsed = JSON.parse(storedUser);
 
                     if (!parsed.email || parsed.email === authUser.email) {
-                        if (!parsed.email) {
-                            parsed.email = authUser.email;
+                        // Sync missing fields if authUser has them from DB
+                        let updated = false;
+                        if (!parsed.email) { parsed.email = authUser.email; updated = true; }
+                        if (authUser.designation && parsed.designation === 'Member') { parsed.designation = authUser.designation; updated = true; }
+                        if (authUser.location && parsed.location === 'Earth') { parsed.location = authUser.location; updated = true; }
+                        if (authUser.verified !== undefined && parsed.verified !== authUser.verified) { parsed.verified = authUser.verified; updated = true; }
+
+                        if (updated) {
                             localStorage.setItem('user_profile', JSON.stringify(parsed));
                         }
                         setUser(parsed);
@@ -61,8 +91,9 @@ export default function Navbar() {
                     name: authUser.name,
                     email: authUser.email,
                     avatar: authUser.avatar,
-                    designation: 'Member',
-                    location: 'Earth',
+                    designation: authUser.designation || 'Member',
+                    location: authUser.location || 'Earth',
+                    verified: authUser.verified || false,
                     bio: 'A passionate professional exploring the intersection of technology and lifestyle.',
                     banner: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000'
                 };

@@ -62,6 +62,8 @@ export async function POST(request) {
             email: user.email,
             image: user.image,
             verified: user.verified,
+            designation: user.designation,
+            location: user.location,
             role: user.role || 'user',
             createdAt: user.createdAt
         };
