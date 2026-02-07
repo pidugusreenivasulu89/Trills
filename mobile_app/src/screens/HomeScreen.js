@@ -9,15 +9,31 @@ import {
     SafeAreaView,
     StatusBar
 } from 'react-native';
-import { Star, ArrowRight } from 'lucide-react-native';
+import { Star, ArrowRight, Quote, Users, MapPin, Zap } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
+import { Animated } from 'react-native';
 
 export default function HomeScreen({ navigation }) {
     const [topVenues, setTopVenues] = useState([]);
+    const scrollY = React.useRef(new Animated.Value(0)).current;
+    const fadeAnim = React.useRef(new Animated.Value(0)).current;
+    const slideAnim = React.useRef(new Animated.Value(30)).current;
 
     useEffect(() => {
         fetchTopVenues();
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 800,
+                useNativeDriver: true,
+            })
+        ]).start();
     }, []);
 
     const fetchTopVenues = async () => {
@@ -40,13 +56,32 @@ export default function HomeScreen({ navigation }) {
                 </View>
 
                 {/* Hero Section */}
-                <View style={styles.hero}>
+                <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
                     <Text style={styles.heroTitle}>Work, Dine, &{"\n"}
                         <Text style={{ color: '#4B184C' }}>Experience</Text>
                     </Text>
                     <Text style={styles.heroSubtitle}>
                         Discover the city's finest dining, co-working, and events.
                     </Text>
+                </Animated.View>
+
+                {/* Quick Stats Section */}
+                <View style={styles.statsRow}>
+                    <View style={styles.statBox}>
+                        <Users size={20} color="#4B184C" />
+                        <Text style={styles.statNum}>50k+</Text>
+                        <Text style={styles.statLabel}>Users</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <MapPin size={20} color="#4B184C" />
+                        <Text style={styles.statNum}>200+</Text>
+                        <Text style={styles.statLabel}>Venues</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Zap size={20} color="#4B184C" />
+                        <Text style={styles.statNum}>4.9/5</Text>
+                        <Text style={styles.statLabel}>Rating</Text>
+                    </View>
                 </View>
 
                 {/* Featured Experiences */}
@@ -107,8 +142,48 @@ export default function HomeScreen({ navigation }) {
                     </ScrollView>
                 </View>
 
+                {/* Testimonials */}
+                <View style={[styles.section, { backgroundColor: '#FDF4FF', paddingVertical: 32, marginHorizontal: -24, paddingHorizontal: 24, marginTop: 40 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                        <Quote size={20} color="#C026D3" fill="#C026D3" />
+                        <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>What users say</Text>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                        <View style={styles.testimonialCard}>
+                            <Text style={styles.testimonialText}>"Trills made finding co-working spaces so easy. The connection feature is a game changer!"</Text>
+                            <View style={styles.testimonialUser}>
+                                <Image source={{ uri: 'https://i.pravatar.cc/150?u=a' }} style={styles.testimonialAvatar} />
+                                <View>
+                                    <Text style={styles.testimonialName}>Sarah Johnson</Text>
+                                    <Text style={styles.testimonialRole}>Product Designer</Text>
+                                </View>
+                            </View>
+                        </View>
+                        <View style={styles.testimonialCard}>
+                            <Text style={styles.testimonialText}>"Premium dining bookings are seamless. I love the verified badge system, it feels secure."</Text>
+                            <View style={styles.testimonialUser}>
+                                <Image source={{ uri: 'https://i.pravatar.cc/150?u=b' }} style={styles.testimonialAvatar} />
+                                <View>
+                                    <Text style={styles.testimonialName}>Michael Chen</Text>
+                                    <Text style={styles.testimonialRole}>Entrepreneur</Text>
+                                </View>
+                            </View>
+                        </View>
+                        <View style={styles.testimonialCard}>
+                            <Text style={styles.testimonialText}>"The events section keeps me updated with all the cool tech meetups in Bangalore."</Text>
+                            <View style={styles.testimonialUser}>
+                                <Image source={{ uri: 'https://i.pravatar.cc/150?u=c' }} style={styles.testimonialAvatar} />
+                                <View>
+                                    <Text style={styles.testimonialName}>Priya Sharma</Text>
+                                    <Text style={styles.testimonialRole}>Software Engineer</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </View>
+
                 {/* Top Picks */}
-                <View style={styles.section}>
+                <View style={[styles.section, { marginTop: 40 }]}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Top Venues</Text>
                         <TouchableOpacity onPress={() => navigation.navigate('Explore')}>
@@ -116,7 +191,7 @@ export default function HomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
 
-                    {topVenues.map(venue => (
+                    {topVenues.map((venue, index) => (
                         <TouchableOpacity
                             key={venue.id || venue._id}
                             style={styles.venueCard}
@@ -312,5 +387,72 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
         color: '#1a1a1a',
+    },
+    // New Styles
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingVertical: 10,
+        backgroundColor: '#fff',
+        marginHorizontal: 24,
+        borderRadius: 20,
+        elevation: 4,
+        shadowColor: '#4B184C',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+    },
+    statBox: {
+        alignItems: 'center',
+        padding: 10,
+    },
+    statNum: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1a1a1a',
+        marginTop: 4,
+    },
+    statLabel: {
+        fontSize: 11,
+        color: '#64748b',
+    },
+    testimonialCard: {
+        width: 280,
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 20,
+        marginRight: 16,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+    },
+    testimonialText: {
+        fontSize: 14,
+        fontStyle: 'italic',
+        color: '#475569',
+        lineHeight: 20,
+        marginBottom: 16,
+    },
+    testimonialUser: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    testimonialAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
+    testimonialName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#1e293b',
+    },
+    testimonialRole: {
+        fontSize: 11,
+        color: '#7B2D7E',
+        fontWeight: '600',
     }
 });
