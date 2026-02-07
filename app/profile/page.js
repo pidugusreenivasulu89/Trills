@@ -11,6 +11,7 @@ function ProfileContent() {
     const [isEditing, setIsEditing] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [verificationStep, setVerificationStep] = useState(0); // 0: start, 1: scanning, 2: success
+    const [scanInstruction, setScanInstruction] = useState('Position your face in the center');
     const [activeTab, setActiveTab] = useState('about');
     const [editData, setEditData] = useState({});
     const [toast, setToast] = useState('');
@@ -189,6 +190,11 @@ function ProfileContent() {
             return;
         }
 
+        // Cycle through instructions
+        setTimeout(() => setScanInstruction('Now look straight at the camera'), 1000);
+        setTimeout(() => setScanInstruction('Processing facial features...'), 2000);
+        setTimeout(() => setScanInstruction('AI Match in progress...'), 3500);
+
         // Simulate scanning process
         setTimeout(async () => {
             // Capture a frame from video
@@ -220,15 +226,11 @@ function ProfileContent() {
 
                     if (res.ok) {
                         setVerificationStep(2);
-                        setTimeout(() => {
-                            const updatedUser = { ...user, verified: true };
-                            localStorage.setItem('user_profile', JSON.stringify(updatedUser));
-                            window.dispatchEvent(new Event('userLogin'));
-                            setUser(updatedUser);
-                            setIsVerifying(false);
-                            setVerificationStep(0);
-                            showToast(locationData ? 'Verification successful with identity and location! ✅' : 'Verification successful! (Location skipped) ✅');
-                        }, 2500);
+                        // Update local state immediately but stay on success screen
+                        const updatedUser = { ...user, verified: true };
+                        localStorage.setItem('user_profile', JSON.stringify(updatedUser));
+                        window.dispatchEvent(new Event('userLogin'));
+                        setUser(updatedUser);
                     } else {
                         const err = await res.json();
                         showToast(err.error || 'Verification failed. Please try again. ❌');
@@ -704,9 +706,12 @@ function ProfileContent() {
                                         }
                                     `}</style>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
-                                    <Loader2 className="animate-spin" size={20} color="var(--primary)" />
-                                    <span style={{ fontWeight: '600' }}>Analyzing facial features...</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', marginBottom: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Loader2 className="animate-spin" size={20} color="var(--primary)" />
+                                        <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{scanInstruction}</span>
+                                    </div>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Keep your device steady</p>
                                 </div>
                                 <div style={{ width: '100%', height: '4px', background: 'rgba(0,0,0,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
                                     <div style={{ height: '100%', background: 'var(--primary)', width: '60%', transition: '1s width linear', animation: 'progress 3s forwards' }}></div>
@@ -719,15 +724,28 @@ function ProfileContent() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="animate-fade-in">
-                                <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                                    <Sparkles size={40} color="#166534" />
+                            <div className="animate-fade-in" style={{ padding: '20px 0' }}>
+                                <div style={{ width: '80px', height: '80px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', animation: 'scaleIn 0.5s ease-out' }}>
+                                    <CheckCircle size={45} color="#22c55e" />
                                 </div>
-                                <h2 className="title-font" style={{ color: '#166534', marginBottom: '16px' }}>Verification Successful!</h2>
-                                <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>Our AI has confirmed your identity. Your profile is now verified and your badge is being activated.</p>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', color: '#166534', fontWeight: 'bold' }}>
-                                    <CheckCircle size={20} /> Identity Confirmed
+                                <h2 className="title-font" style={{ color: '#22c55e', marginBottom: '16px', fontSize: '1.8rem' }}>Identity Verified!</h2>
+                                <p style={{ color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem' }}>
+                                    Your professional verification is complete. The badge is now active on your profile and community posts.
+                                </p>
+                                <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '15px', borderRadius: '12px', marginBottom: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#166534', fontWeight: '600' }}>
+                                    <Shield size={18} /> Professional Badge Activated
                                 </div>
+                                <button
+                                    onClick={() => {
+                                        setIsVerifying(false);
+                                        setVerificationStep(0);
+                                        showToast('Welcome to the verified community! ✨');
+                                    }}
+                                    className="btn-primary"
+                                    style={{ width: '100%', padding: '15px' }}
+                                >
+                                    Finish & Show Badge
+                                </button>
                             </div>
                         )}
                     </div>
