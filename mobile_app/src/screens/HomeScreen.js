@@ -57,12 +57,21 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Hero Section */}
                 <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-                    <Text style={styles.heroTitle}>Work, Dine, &{"\n"}
-                        <Text style={{ color: '#4B184C' }}>Experience</Text>
-                    </Text>
-                    <Text style={styles.heroSubtitle}>
-                        Discover the city's finest dining, co-working, and events.
-                    </Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.heroTitle}>Work, Dine, &{"\n"}
+                                <Text style={{ color: '#4B184C' }}>Experience</Text>
+                            </Text>
+                            <Text style={styles.heroSubtitle}>
+                                Discover the city's finest dining and events.
+                            </Text>
+                        </View>
+                        <Image
+                            source={{ uri: 'https://illustrations.popsy.co/purple/launching.svg' }}
+                            style={{ width: 100, height: 100, marginLeft: 10 }}
+                            resizeMode="contain"
+                        />
+                    </View>
                 </Animated.View>
 
                 {/* Quick Stats Section */}
@@ -90,11 +99,13 @@ export default function HomeScreen({ navigation }) {
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                         {/* Dining Card */}
-                        <View style={styles.featureCard}>
-                            <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000' }}
-                                style={styles.cardImage}
-                            />
+                        <View style={[styles.featureCard, { height: 260 }]}>
+                            <View style={{ height: 140, backgroundColor: '#FDF4FF', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                                <Image
+                                    source={{ uri: 'https://illustrations.popsy.co/purple/coffee-break.svg' }}
+                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                />
+                            </View>
                             <View style={styles.cardContent}>
                                 <View style={[styles.badge, { backgroundColor: 'rgba(75, 24, 76, 0.1)' }]}>
                                     <Text style={[styles.badgeText, { color: '#4B184C' }]}>Dineout</Text>
@@ -107,11 +118,13 @@ export default function HomeScreen({ navigation }) {
                         </View>
 
                         {/* Workspace Card */}
-                        <View style={styles.featureCard}>
-                            <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=1000' }}
-                                style={styles.cardImage}
-                            />
+                        <View style={[styles.featureCard, { height: 260 }]}>
+                            <View style={{ height: 140, backgroundColor: '#FDF4FF', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                                <Image
+                                    source={{ uri: 'https://illustrations.popsy.co/purple/remote-work.svg' }}
+                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                />
+                            </View>
                             <View style={styles.cardContent}>
                                 <View style={[styles.badge, { backgroundColor: 'rgba(75, 24, 76, 0.1)' }]}>
                                     <Text style={[styles.badgeText, { color: '#4B184C' }]}>Workspace</Text>
@@ -124,11 +137,13 @@ export default function HomeScreen({ navigation }) {
                         </View>
 
                         {/* Events Card */}
-                        <View style={styles.featureCard}>
-                            <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1000' }}
-                                style={styles.cardImage}
-                            />
+                        <View style={[styles.featureCard, { height: 260 }]}>
+                            <View style={{ height: 140, backgroundColor: '#FDF4FF', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                                <Image
+                                    source={{ uri: 'https://illustrations.popsy.co/purple/celebration.svg' }}
+                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                />
+                            </View>
                             <View style={styles.cardContent}>
                                 <View style={[styles.badge, { backgroundColor: 'rgba(75, 24, 76, 0.1)' }]}>
                                     <Text style={[styles.badgeText, { color: '#4B184C' }]}>Events</Text>

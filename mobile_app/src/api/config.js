@@ -1,6 +1,14 @@
 import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
+    // Set this to true to test against your local server
+    const IS_LOCAL = true;
+
+    if (IS_LOCAL) {
+        // For Android Emulator, use 10.0.2.2. For iOS/Real Device, use your computer's IP.
+        return Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
+    }
+
     // Live Production API URL
     return 'https://www.trills.in/api';
 };

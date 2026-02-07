@@ -122,10 +122,13 @@ export default function HomeClient() {
                     borderRadius: '50%'
                 }}></div>
 
-                <h1 className="title-font" style={{ fontSize: '4.5rem', fontWeight: '800', marginBottom: '20px', lineHeight: '1.1' }}>
+                <h1 className="title-font" style={{ fontSize: '4.5rem', fontWeight: '800', marginBottom: '20px', lineHeight: '1.1', zIndex: 1 }}>
                     Work, Dine, & <span style={{ color: 'var(--primary)' }}>Experience</span>
                 </h1>
-                <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '600px', marginBottom: '40px' }}>
+                <div style={{ position: 'relative', width: '300px', height: '180px', marginBottom: '20px' }}>
+                    <img src="https://illustrations.popsy.co/purple/launching.svg" style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Hero" />
+                </div>
+                <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '600px', marginBottom: '40px', zIndex: 1 }}>
                     Discover the city's finest dining, premium co-working spaces, and exclusive social events all in one place.
                 </p>
                 <div style={{ display: 'flex', gap: '20px', zIndex: 1 }}>
@@ -156,7 +159,9 @@ export default function HomeClient() {
                     <h2 className="title-font" style={{ fontSize: '2.5rem', marginBottom: '40px' }}>Featured Experiences</h2>
                     <div className="grid-3">
                         <div className="glass-card hover-lift" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-                            <div style={{ height: '240px', background: 'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000") center/cover' }}></div>
+                            <div style={{ height: '240px', background: 'rgba(75, 24, 76, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                                <img src="https://illustrations.popsy.co/purple/coffee-break.svg" style={{ maxHeight: '100%', maxWidth: '100%' }} alt="Dining" />
+                            </div>
                             <div style={{ padding: '32px' }}>
                                 <span className="badge badge-primary" style={{ marginBottom: '16px', background: 'rgba(75, 24, 76, 0.1)', color: 'var(--primary)' }}>Dineout</span>
                                 <h3 className="title-font" style={{ fontSize: '1.8rem', marginBottom: '12px' }}>Premium Dining</h3>
@@ -166,7 +171,9 @@ export default function HomeClient() {
                         </div>
 
                         <div className="glass-card hover-lift" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-                            <div style={{ height: '240px', background: 'url("https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=1000") center/cover' }}></div>
+                            <div style={{ height: '240px', background: 'rgba(75, 24, 76, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                                <img src="https://illustrations.popsy.co/purple/remote-work.svg" style={{ maxHeight: '100%', maxWidth: '100%' }} alt="Workspace" />
+                            </div>
                             <div style={{ padding: '32px' }}>
                                 <span className="badge badge-primary" style={{ marginBottom: '16px', background: 'rgba(75, 24, 76, 0.1)', color: 'var(--primary)' }}>Workspace</span>
                                 <h3 className="title-font" style={{ fontSize: '1.8rem', marginBottom: '12px' }}>Co-working Spaces</h3>
@@ -176,7 +183,9 @@ export default function HomeClient() {
                         </div>
 
                         <div className="glass-card hover-lift" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-                            <div style={{ height: '240px', background: 'url("https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1000") center/cover' }}></div>
+                            <div style={{ height: '240px', background: 'rgba(75, 24, 76, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                                <img src="https://illustrations.popsy.co/purple/celebration.svg" style={{ maxHeight: '100%', maxWidth: '100%' }} alt="Events" />
+                            </div>
                             <div style={{ padding: '32px' }}>
                                 <span className="badge badge-primary" style={{ marginBottom: '16px', background: 'rgba(75, 24, 76, 0.1)', color: 'var(--primary)' }}>Events</span>
                                 <h3 className="title-font" style={{ fontSize: '1.8rem', marginBottom: '12px' }}>Exclusive Events</h3>
