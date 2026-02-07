@@ -14,6 +14,7 @@ export default function VerificationScreen({ navigation }) {
     const [step, setStep] = useState(0); // 0: intro, 1: scanning, 2: success
     const [permission, requestPermission] = useCameraPermissions();
     const [isFaceDetected, setIsFaceDetected] = useState(false);
+    const cameraRef = useRef(null);
     const [userEmail, setUserEmail] = useState('user@trills.com');
     const [scanInstruction, setScanInstruction] = useState('Position your face in the center');
 
@@ -49,12 +50,24 @@ export default function VerificationScreen({ navigation }) {
         setIsFaceDetected(false);
 
         try {
+            // Simulated face discovery
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setIsFaceDetected(true);
+
             // Cycle through instructions
             setTimeout(() => setScanInstruction('Now look straight at the camera'), 1000);
             setTimeout(() => setScanInstruction('Processing facial features...'), 2500);
 
-            // Wait for 'analysis'
-            await new Promise(resolve => setTimeout(resolve, 4000));
+            // Get location
+            let deviceLocation = null;
+            try {
+                deviceLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            } catch (e) {
+                console.log('Location fetch failed, proceeding anyway');
+            }
+
+            // Wait for 'analysis' completion
+            await new Promise(resolve => setTimeout(resolve, 3500));
 
             let photoData = null;
 
@@ -158,6 +171,11 @@ export default function VerificationScreen({ navigation }) {
                             style={StyleSheet.absoluteFill}
                             facing="front"
                         />
+                        {/* Face Overlay Guidance */}
+                        <View style={styles.faceOverlay}>
+                            <View style={[styles.faceOval, isFaceDetected && styles.faceOvalActive]} />
+                        </View>
+
                         <View style={[
                             styles.scanLine,
                             isFaceDetected && styles.scanLineActive
@@ -215,8 +233,11 @@ const styles = StyleSheet.create({
     scannerWrapper: { width: 250, height: 250, borderRadius: 125, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', marginBottom: 32, borderWidth: 4, borderColor: 'rgba(75, 24, 76, 0.1)' },
     scannerWrapperActive: { borderColor: '#10B981' },
     scannerCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
-    scanLine: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#4B184C', shadowColor: '#4B184C', shadowRadius: 10, shadowOpacity: 1, elevation: 10 },
+    scanLine: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#4B184C', shadowColor: '#4B184C', shadowRadius: 10, shadowOpacity: 1, elevation: 10, zIndex: 10 },
     scanLineActive: { backgroundColor: '#10B981', shadowColor: '#10B981' },
     scanTitle: { fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 },
-    scanSubtitle: { fontSize: 14, color: '#64748b' }
+    scanSubtitle: { fontSize: 14, color: '#64748b' },
+    faceOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+    faceOval: { width: 180, height: 240, borderRadius: 100, borderStyle: 'dotted', borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)' },
+    faceOvalActive: { borderColor: '#10B981', borderStyle: 'solid', borderWidth: 4, backgroundColor: 'rgba(16, 185, 129, 0.05)' }
 });
