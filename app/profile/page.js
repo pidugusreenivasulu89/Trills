@@ -33,6 +33,10 @@ function ProfileContent() {
             const stored = localStorage.getItem('user_profile');
             if (stored) {
                 const userData = JSON.parse(stored);
+                // Normalize avatar field
+                if (userData.image && !userData.avatar) userData.avatar = userData.image;
+                if (userData.avatar && !userData.image) userData.image = userData.avatar;
+
                 setUser(userData);
                 setEditData(userData);
 
@@ -79,19 +83,26 @@ function ProfileContent() {
 
     const handleSave = async () => {
         try {
+            // Prepare data for saving
+            const dataToSave = { ...editData };
+
+            // Ensure consistency
+            if (dataToSave.avatar) dataToSave.image = dataToSave.avatar;
+            if (dataToSave.image) dataToSave.avatar = dataToSave.image;
+
             const res = await fetch('/api/users/profile', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: user.email,
-                    ...editData
+                    ...dataToSave
                 })
             });
 
             if (res.ok) {
-                localStorage.setItem('user_profile', JSON.stringify(editData));
+                localStorage.setItem('user_profile', JSON.stringify(dataToSave));
                 window.dispatchEvent(new Event('userLogin'));
-                setUser({ ...editData });
+                setUser({ ...dataToSave });
                 setIsEditing(false);
                 showToast('Profile updated to database! ✨');
             } else {
@@ -124,8 +135,8 @@ function ProfileContent() {
     const handlePicEdit = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 1024 * 1024) {
-                showToast('Image is too large! Please select a file under 1MB. ⚠️');
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('Image is too large! Please select a file under 2MB. ⚠️');
                 return;
             }
             const reader = new FileReader();
@@ -142,8 +153,8 @@ function ProfileContent() {
     const handleBannerEdit = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 1.5 * 1024 * 1024) {
-                showToast('Banner is too large! Please use a file under 1.5MB. ⚠️');
+            if (file.size > 2.5 * 1024 * 1024) {
+                showToast('Banner is too large! Please use a file under 2.5MB. ⚠️');
                 return;
             }
             const reader = new FileReader();
