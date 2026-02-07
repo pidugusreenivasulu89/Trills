@@ -28,6 +28,8 @@ export default function OnboardingPage() {
                 parsed.firstName = parts[0];
                 parsed.lastName = parts.slice(1).join(' ');
             }
+            // Normalize avatar/image field
+            if (parsed.image && !parsed.avatar) parsed.avatar = parsed.image;
             setFormData(prev => ({ ...prev, ...parsed }));
         }
     }, []);

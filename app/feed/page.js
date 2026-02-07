@@ -37,7 +37,10 @@ export default function FeedPage() {
 
             const stored = localStorage.getItem('user_profile');
             if (stored) {
-                setUser(JSON.parse(stored));
+                const parsed = JSON.parse(stored);
+                // Normalize avatar field
+                if (parsed.image && !parsed.avatar) parsed.avatar = parsed.image;
+                setUser(parsed);
             } else if (session) {
                 // Navbar will handle populating localStorage, we just wait
                 return;
@@ -68,7 +71,8 @@ export default function FeedPage() {
             id: Date.now().toString(),
             user: {
                 name: user?.name || 'You',
-                avatar: user?.avatar || 'https://i.pravatar.cc/150?u=me'
+                avatar: user?.avatar || user?.image || 'https://i.pravatar.cc/150?u=me',
+                verified: user?.verified || false
             },
             content: newPost,
             image: attachedImage,
@@ -76,8 +80,7 @@ export default function FeedPage() {
             likes: 0,
             liked: false,
             comments: [],
-            timestamp: 'Just now',
-            verified: user?.verified || false
+            timestamp: 'Just now'
         };
 
         setPosts([post, ...posts]);
@@ -116,6 +119,7 @@ export default function FeedPage() {
                     comments: [...(Array.isArray(post.comments) ? post.comments : []), {
                         id: Date.now(),
                         user: user?.name.split(' ')[0] || 'User',
+                        avatar: user?.avatar || user?.image || 'https://i.pravatar.cc/150?u=me',
                         text: commentText
                     }]
                 };
@@ -211,7 +215,11 @@ export default function FeedPage() {
                 <div className="glass-card" style={{ marginBottom: '40px' }}>
                     <form onSubmit={handlePost}>
                         <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-                            <img src={user?.avatar || "https://i.pravatar.cc/150?u=me"} alt="Me" style={{ width: '45px', height: '45px', borderRadius: '50%', border: '1px solid var(--border-glass)' }} />
+                            <img
+                                src={user?.avatar || user?.image || "https://i.pravatar.cc/150?u=me"}
+                                alt="Me"
+                                style={{ width: '45px', height: '45px', borderRadius: '50%', border: '1px solid var(--border-glass)', objectFit: 'cover' }}
+                            />
                             <textarea
                                 placeholder="What's happening? Share your latest booking or experience!"
                                 value={newPost}
@@ -303,7 +311,11 @@ export default function FeedPage() {
                         <div key={post.id} className="glass-card" style={{ padding: '24px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                    <img src={post.user.avatar} alt={post.user.name} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                                    <img
+                                        src={(post.user.name === user?.name || post.user.name === 'You') ? (user?.avatar || user?.image || post.user.avatar) : post.user.avatar}
+                                        alt={post.user.name}
+                                        style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                                    />
                                     <div>
                                         <h4 className="title-font" style={{ fontSize: '1rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                             {post.user.name}
@@ -479,9 +491,12 @@ export default function FeedPage() {
                                         />
                                     </div>
                                     {Array.isArray(post.comments) && post.comments.map(comment => (
-                                        <div key={comment.id} style={{ fontSize: '0.9rem', marginBottom: '8px', background: 'rgba(75, 24, 76, 0.03)', padding: '8px 12px', borderRadius: '10px' }}>
-                                            <span style={{ fontWeight: '600', marginRight: '8px', color: 'var(--primary)' }}>{comment.user}</span>
-                                            <span style={{ color: 'var(--text-muted)' }}>{comment.text}</span>
+                                        <div key={comment.id} style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'flex-start' }}>
+                                            <img src={comment.avatar || `https://i.pravatar.cc/150?u=${comment.user}`} alt={comment.user} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            <div style={{ background: 'rgba(75, 24, 76, 0.03)', padding: '8px 12px', borderRadius: '10px', flex: 1 }}>
+                                                <span style={{ fontWeight: '600', marginRight: '8px', color: 'var(--primary)', fontSize: '0.85rem' }}>{comment.user}</span>
+                                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0, display: 'inline' }}>{comment.text}</p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
