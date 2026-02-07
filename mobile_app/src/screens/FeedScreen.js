@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Share } from 'react-native';
-import { Heart, MessageCircle, Share2, Star, UserPlus, Zap, Check } from 'lucide-react-native';
+import { Heart, MessageCircle, Share2, Star, UserPlus, Zap, Check, CheckCircle } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -51,7 +51,17 @@ export default function FeedScreen({ navigation }) {
 
     const [sentRequests, setSentRequests] = useState(new Set());
 
+    const [currentUser, setCurrentUser] = useState(null);
+
     useEffect(() => {
+        const loadUserData = async () => {
+            try {
+                const storedUser = await AsyncStorage.getItem('user');
+                if (storedUser) {
+                    setCurrentUser(JSON.parse(storedUser));
+                }
+            } catch (e) { }
+        };
         const loadPending = async () => {
             try {
                 const stored = await AsyncStorage.getItem('pending_connections');
@@ -61,8 +71,13 @@ export default function FeedScreen({ navigation }) {
                 }
             } catch (e) { }
         };
+        loadUserData();
         loadPending();
-    }, []);
+
+        // Refresh user data when screen is focused
+        const unsubscribe = navigation.addListener('focus', loadUserData);
+        return unsubscribe;
+    }, [navigation]);
 
     const handleQuickConnect = async (recipientEmail, userName) => {
         try {
@@ -222,9 +237,17 @@ export default function FeedScreen({ navigation }) {
                                         });
                                     }}
                                 >
-                                    <Image source={{ uri: post.avatar }} style={styles.avatar} />
+                                    <Image
+                                        source={{ uri: (post.email === currentUser?.email) ? (currentUser?.avatar || currentUser?.image || post.avatar) : post.avatar }}
+                                        style={styles.avatar}
+                                    />
                                     <View>
-                                        <Text style={styles.name}>{post.user}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <Text style={styles.name}>{post.user}</Text>
+                                            {(post.verified || (post.email === currentUser?.email && currentUser?.verified)) && (
+                                                <CheckCircle size={14} color="#4B184C" fill="#4B184C" />
+                                            )}
+                                        </View>
                                         <Text style={styles.timestamp}>2 hours ago</Text>
                                     </View>
                                 </TouchableOpacity>

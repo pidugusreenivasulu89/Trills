@@ -17,4 +17,5 @@ export const ENDPOINTS = {
     REVIEWS: `${API_BASE_URL}/ratings`,
     CANCEL_BOOKING: `${API_BASE_URL}/bookings/cancel`,
     CONNECTIONS: `${API_BASE_URL}/connections`,
+    PROFILE_UPDATE: `${API_BASE_URL}/users/profile`,
 };

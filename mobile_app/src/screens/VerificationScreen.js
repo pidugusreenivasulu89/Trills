@@ -14,8 +14,8 @@ export default function VerificationScreen({ navigation }) {
     const [step, setStep] = useState(0); // 0: intro, 1: scanning, 2: success
     const [permission, requestPermission] = useCameraPermissions();
     const [isFaceDetected, setIsFaceDetected] = useState(false);
-    const cameraRef = useRef(null);
     const [userEmail, setUserEmail] = useState('user@trills.com');
+    const [scanInstruction, setScanInstruction] = useState('Position your face in the center');
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -49,15 +49,12 @@ export default function VerificationScreen({ navigation }) {
         setIsFaceDetected(false);
 
         try {
-            // Simulated face detection wait
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            setIsFaceDetected(true);
-
-            // Get location
-            const deviceLocation = await Location.getCurrentPositionAsync({});
+            // Cycle through instructions
+            setTimeout(() => setScanInstruction('Now look straight at the camera'), 1000);
+            setTimeout(() => setScanInstruction('Processing facial features...'), 2500);
 
             // Wait for 'analysis'
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 4000));
 
             let photoData = null;
 
@@ -82,8 +79,16 @@ export default function VerificationScreen({ navigation }) {
                 email: userEmail
             });
 
-            console.log('Server Response:', response.data);
-            setStep(2);
+            if (response.data.success) {
+                // Update local storage
+                const userData = await AsyncStorage.getItem('user');
+                if (userData) {
+                    const parsed = JSON.parse(userData);
+                    parsed.verified = true;
+                    await AsyncStorage.setItem('user', JSON.stringify(parsed));
+                }
+                setStep(2);
+            }
         } catch (error) {
             console.log('Verification API Error Detailed:', error);
             setStep(0);
@@ -159,10 +164,10 @@ export default function VerificationScreen({ navigation }) {
                         ]} />
                     </View>
                     <Text style={styles.scanTitle}>
-                        {isFaceDetected ? 'Face Detected!' : 'Position your face...'}
+                        {isFaceDetected ? 'AI Scan in Progress' : 'Position your face'}
                     </Text>
                     <Text style={styles.scanSubtitle}>
-                        {isFaceDetected ? 'Analyzing biometric features' : 'Hold still and look at the camera'}
+                        {isFaceDetected ? scanInstruction : 'Hold still and look at the camera'}
                     </Text>
                     <ActivityIndicator
                         size="large"
@@ -174,15 +179,17 @@ export default function VerificationScreen({ navigation }) {
 
             {step === 2 && (
                 <View style={[styles.content, { justifyContent: 'center' }]}>
-                    <View style={[styles.iconCircle, { backgroundColor: '#dcfce7' }]}>
-                        <CheckCircle size={48} color="#10b981" />
+                    <View style={[styles.iconCircle, { backgroundColor: '#dcfce7', width: 120, height: 120, borderRadius: 60 }]}>
+                        <CheckCircle size={60} color="#10b981" />
                     </View>
-                    <Text style={styles.title}>Verification Successful!</Text>
-                    <Text style={styles.subtitle}>
-                        Your identity has been confirmed. A blue badge has been added to your profile.
-                    </Text>
+                    <Text style={[styles.title, { color: '#10b981' }]}>Identity Verified!</Text>
+                    <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', padding: 15, borderRadius: 12, marginBottom: 30, width: '100%' }}>
+                        <Text style={[styles.subtitle, { marginBottom: 0, color: '#065f46', fontWeight: '600' }]}>
+                            Our AI has confirmed your identity. Your professional badge is now active.
+                        </Text>
+                    </View>
                     <TouchableOpacity style={styles.primaryBtn} onPress={handleComplete}>
-                        <Text style={styles.primaryBtnText}>Back to Profile</Text>
+                        <Text style={styles.primaryBtnText}>Finish & Show Badge</Text>
                     </TouchableOpacity>
                 </View>
             )}

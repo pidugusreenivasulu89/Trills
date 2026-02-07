@@ -1,21 +1,80 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { Camera, User, Briefcase, MapPin, AlignLeft, Check } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { ENDPOINTS } from '../api/config';
+import { Alert } from 'react-native';
 
 export default function EditProfileScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
-    const [name, setName] = useState('Sreenivasulu');
-    const [designation, setDesignation] = useState('Full Stack Developer');
-    const [location, setLocation] = useState('Bangalore, India');
-    const [bio, setBio] = useState('Building the future of social networking and workspace management.');
+    const [user, setUser] = useState(null);
+    const [name, setName] = useState('');
+    const [designation, setDesignation] = useState('');
+    const [location, setLocation] = useState('');
+    const [bio, setBio] = useState('');
+    const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?u=me');
 
-    const handleSave = () => {
+    React.useEffect(() => {
+        const loadUser = async () => {
+            try {
+                const stored = await AsyncStorage.getItem('user');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setUser(parsed);
+                    setName(parsed.name || '');
+                    setDesignation(parsed.designation || '');
+                    setLocation(parsed.location || '');
+                    setBio(parsed.bio || '');
+                    // Normalize avatar
+                    setAvatar(parsed.avatar || parsed.image || 'https://i.pravatar.cc/150?u=me');
+                }
+            } catch (e) {
+                console.log('Load user error:', e);
+            }
+        };
+        loadUser();
+    }, []);
+
+    const handleSave = async () => {
+        if (!user?.email) {
+            Alert.alert('Error', 'User session not found. Please log in again.');
+            return;
+        }
+
         setLoading(true);
-        // Simulate save process
-        setTimeout(() => {
+        try {
+            const updateData = {
+                email: user.email,
+                name,
+                designation,
+                location,
+                bio,
+                avatar,
+                image: avatar // Keep consistent
+            };
+
+            const response = await axios.patch(ENDPOINTS.PROFILE_UPDATE, updateData, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.data.success) {
+                // Update local storage
+                const updatedUser = { ...user, ...updateData };
+                await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+
+                Alert.alert('Success', 'Profile updated successfully! ✨', [
+                    { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
+            } else {
+                Alert.alert('Update Failed', response.data.error || 'Could not sync with database.');
+            }
+        } catch (error) {
+            console.log('Profile Save Error:', error);
+            Alert.alert('Error', 'An unexpected error occurred. Please try again later.');
+        } finally {
             setLoading(false);
-            navigation.goBack();
-        }, 1500);
+        }
     };
 
     return (
@@ -32,7 +91,7 @@ export default function EditProfileScreen({ navigation }) {
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.avatarSection}>
-                    <Image source={{ uri: 'https://i.pravatar.cc/150?u=me' }} style={styles.avatar} />
+                    <Image source={{ uri: avatar }} style={styles.avatar} />
                     <TouchableOpacity style={styles.changePicBtn}>
                         <Camera size={16} color="#fff" />
                         <Text style={styles.changePicText}>Change Photo</Text>

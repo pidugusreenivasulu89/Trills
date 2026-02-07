@@ -151,7 +151,7 @@ export default function ProfileScreen({ navigation }) {
                 <View style={styles.profileBox}>
                     <View style={styles.avatarWrapper}>
                         <Image
-                            source={{ uri: user?.image || 'https://i.pravatar.cc/150?u=trills' }}
+                            source={{ uri: user?.avatar || user?.image || 'https://i.pravatar.cc/150?u=trills' }}
                             style={styles.avatar}
                         />
                         {user?.verified && (
