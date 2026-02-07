@@ -77,14 +77,29 @@ function ProfileContent() {
         };
     }, []);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         try {
-            localStorage.setItem('user_profile', JSON.stringify(editData));
-            window.dispatchEvent(new Event('userLogin'));
-            setUser({ ...editData });
-            setIsEditing(false);
-            showToast('Profile updated successfully! ✨');
+            const res = await fetch('/api/users/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    ...editData
+                })
+            });
+
+            if (res.ok) {
+                localStorage.setItem('user_profile', JSON.stringify(editData));
+                window.dispatchEvent(new Event('userLogin'));
+                setUser({ ...editData });
+                setIsEditing(false);
+                showToast('Profile updated to database! ✨');
+            } else {
+                const data = await res.json();
+                showToast(data.error || 'Failed to sync with database. ❌');
+            }
         } catch (error) {
+            console.error('Profile save error:', error);
             if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
                 showToast('Storage full! Please use a smaller profile picture. ⚠️');
             } else {
@@ -479,16 +494,14 @@ function ProfileContent() {
                                         <MapPin color="var(--primary)" size={20} />
                                         <div>
                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Based in</div>
-                                            <div style={{ fontWeight: '500' }}>
-                                                {user.location && !isNaN(user.location.charAt(0)) ? 'Assigned Region' : (user.location || 'Not specified')}
-                                            </div>
+                                            <div style={{ fontWeight: '500' }}>{user.location || 'Not specified'}</div>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '12px' }}>
                                         <Mail color="var(--primary)" size={20} />
                                         <div>
                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Email</div>
-                                            <div style={{ fontWeight: '500' }}>{user.name.toLowerCase().replace(' ', '.')}@trills.com</div>
+                                            <div style={{ fontWeight: '500' }}>{user.email || 'Not specified'}</div>
                                         </div>
                                     </div>
                                 </div>
