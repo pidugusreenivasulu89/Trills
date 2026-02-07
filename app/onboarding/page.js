@@ -103,7 +103,54 @@ export default function OnboardingPage() {
                         <h1 className="title-font" style={{ fontSize: '2rem', marginBottom: '10px' }}>Let's get to know you</h1>
                         <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>Tell us a bit about who you are.</p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '10px' }}>
+                                <div
+                                    onClick={() => document.getElementById('avatar-input').click()}
+                                    style={{
+                                        width: '100px',
+                                        height: '100px',
+                                        borderRadius: '50%',
+                                        background: 'var(--bg-glass)',
+                                        border: '2px dashed var(--border-glass)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        overflow: 'hidden',
+                                        position: 'relative',
+                                        transition: '0.3s'
+                                    }}
+                                >
+                                    {formData.avatar ? (
+                                        <img src={formData.avatar} alt="Profile Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <>
+                                            <Rocket size={24} color="var(--text-muted)" />
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '8px' }}>Add Photo</span>
+                                        </>
+                                    )}
+                                </div>
+                                <input
+                                    id="avatar-input"
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setFormData({ ...formData, avatar: reader.result });
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '10px' }}>Click to upload profile picture</p>
+                            </div>
+
                             <div>
                                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Full Name</label>
                                 <input

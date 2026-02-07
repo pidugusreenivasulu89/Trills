@@ -17,7 +17,7 @@ export async function POST(request) {
     try {
         await dbConnect();
 
-        const { name, username, email, phone, password, authProvider } = await request.json();
+        const { name, username, email, phone, password, authProvider, image } = await request.json();
 
         // Validate required fields
         if (!name || !username || !email) {
@@ -69,6 +69,7 @@ export async function POST(request) {
             email: email.toLowerCase(),
             phone,
             password: hashedPassword,
+            image,
             authProvider: authProvider || 'email',
             verified: false
         });
@@ -79,6 +80,7 @@ export async function POST(request) {
             name: user.name,
             username: user.username,
             email: user.email,
+            image: user.image,
             verified: user.verified,
             role: user.role || 'user',
             authProvider: user.authProvider,

@@ -67,44 +67,45 @@ export default function Navbar() {
                 }
             }
 
+            // 2. Decide what to do based on authUser and currentProfile
             if (authUser) {
-                if (storedUser) {
-                    const parsed = JSON.parse(storedUser);
+                const stored = localStorage.getItem('user_profile');
+                let parsed = stored ? JSON.parse(stored) : null;
 
-                    if (!parsed.email || parsed.email === authUser.email) {
-                        // Sync missing fields if authUser has them from DB
-                        let updated = false;
-                        if (!parsed.email) { parsed.email = authUser.email; updated = true; }
-                        if (authUser.designation && parsed.designation === 'Member') { parsed.designation = authUser.designation; updated = true; }
-                        if (authUser.location && parsed.location === 'Earth') { parsed.location = authUser.location; updated = true; }
-                        if (authUser.verified !== undefined && parsed.verified !== authUser.verified) { parsed.verified = authUser.verified; updated = true; }
+                if (parsed && (parsed.email === authUser.email || !parsed.email)) {
+                    // Sync fields
+                    let updated = false;
+                    if (!parsed.email) { parsed.email = authUser.email; updated = true; }
+                    if (authUser.name && parsed.name !== authUser.name) { parsed.name = authUser.name; updated = true; }
+                    if (authUser.designation && parsed.designation === 'Member') { parsed.designation = authUser.designation; updated = true; }
+                    if (authUser.location && parsed.location === 'Earth') { parsed.location = authUser.location; updated = true; }
+                    if (authUser.verified !== undefined && parsed.verified !== authUser.verified) { parsed.verified = authUser.verified; updated = true; }
 
-                        if (updated) {
-                            localStorage.setItem('user_profile', JSON.stringify(parsed));
-                        }
-                        setUser(parsed);
-                        return;
+                    if (updated) {
+                        localStorage.setItem('user_profile', JSON.stringify(parsed));
                     }
+                    setUser(parsed);
+                } else {
+                    const profile = {
+                        name: authUser.name,
+                        email: authUser.email,
+                        avatar: authUser.avatar,
+                        designation: authUser.designation || 'Member',
+                        location: authUser.location || 'Earth',
+                        verified: authUser.verified || false,
+                        bio: 'A passionate professional exploring the intersection of technology and lifestyle.',
+                        banner: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000'
+                    };
+                    localStorage.setItem('user_profile', JSON.stringify(profile));
+                    setUser(profile);
                 }
-
-                const profile = {
-                    name: authUser.name,
-                    email: authUser.email,
-                    avatar: authUser.avatar,
-                    designation: authUser.designation || 'Member',
-                    location: authUser.location || 'Earth',
-                    verified: authUser.verified || false,
-                    bio: 'A passionate professional exploring the intersection of technology and lifestyle.',
-                    banner: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000'
-                };
-                localStorage.setItem('user_profile', JSON.stringify(profile));
-                setUser(profile);
             } else {
-                // If no authentication session found, clear user state and localStorage
-                setUser(null);
-                if (storedUser) {
-                    localStorage.removeItem('user_profile');
-                    window.dispatchEvent(new Event('userLogin'));
+                // If no session, check if we have a local profile
+                const stored = localStorage.getItem('user_profile');
+                if (stored) {
+                    setUser(JSON.parse(stored));
+                } else {
+                    setUser(null);
                 }
             }
         };

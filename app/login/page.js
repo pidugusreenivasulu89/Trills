@@ -135,11 +135,74 @@ function LoginContent() {
                     <div className="divider-line"></div>
                 </div>
 
+                {/* Email Login Form */}
+                <form
+                    onSubmit={async (e) => {
+                        e.preventDefault();
+                        const email = e.target.email.value;
+                        const password = e.target.password.value;
+                        setIsAuthenticating(true);
+                        setAuthProvider('Email');
+
+                        try {
+                            const res = await fetch('/api/users/login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email, password })
+                            });
+
+                            const data = await res.json();
+                            if (res.ok && data.user) {
+                                // Important: Store user data in localStorage so Navbar can pick it up
+                                const profile = {
+                                    name: data.user.name,
+                                    email: data.user.email,
+                                    avatar: data.user.image,
+                                    designation: data.user.designation || 'Member',
+                                    location: data.user.location || 'Earth',
+                                    verified: data.user.verified || false,
+                                    bio: 'A passionate professional exploring the intersection of technology and lifestyle.',
+                                    banner: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000'
+                                };
+                                localStorage.setItem('user_profile', JSON.stringify(profile));
+                                window.dispatchEvent(new Event('userLogin'));
+                                router.push('/feed');
+                            } else {
+                                alert(data.error || 'Login failed');
+                                setIsAuthenticating(false);
+                            }
+                        } catch (err) {
+                            console.error('Login error:', err);
+                            alert('An error occurred. Please try again.');
+                            setIsAuthenticating(false);
+                        }
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}
+                >
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Email Address"
+                        required
+                        style={{ padding: '12px 20px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        required
+                        style={{ padding: '12px 20px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
+                    />
+                    <button type="submit" className="btn-primary" style={{ padding: '12px', borderRadius: '12px', fontWeight: 'bold' }}>
+                        Sign In with Email
+                    </button>
+                </form>
+
                 {/* Footer links */}
                 <div className="login-footer">
                     <p className="footer-text">
                         New to Trills?
-                        <a href="/onboarding" className="footer-link">Create an account</a>
+                        <a href="/register" className="footer-link">Create an account</a>
                     </p>
                     <a href="/admin/login" className="admin-link">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
