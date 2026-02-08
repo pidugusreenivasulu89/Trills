@@ -27,29 +27,48 @@ export default function FeedPage() {
     const [hiddenPostIds, setHiddenPostIds] = useState([]);
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [toastMessage, setToastMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const { data: session, status: sessionStatus } = useSession();
 
     useEffect(() => {
         const checkUser = () => {
-            // Wait for session to be determined
-            if (sessionStatus === 'loading') return;
+            try {
+                // Wait for session to be determined
+                if (sessionStatus === 'loading') {
+                    setIsLoading(true);
+                    return;
+                }
 
-            // Ensure we're on the client side
-            if (typeof window === 'undefined') return;
+                // Ensure we're on the client side
+                if (typeof window === 'undefined') return;
 
-            const stored = localStorage.getItem('user_profile');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                // Normalize avatar field
-                if (parsed.image && !parsed.avatar) parsed.avatar = parsed.image;
-                setUser(parsed);
-            } else if (session) {
-                // Navbar will handle populating localStorage, we just wait
-                return;
-            } else {
-                setUser(null);
-                router.push('/');
+                const stored = localStorage.getItem('user_profile');
+                if (stored) {
+                    try {
+                        const parsed = JSON.parse(stored);
+                        // Normalize avatar field
+                        if (parsed.image && !parsed.avatar) parsed.avatar = parsed.image;
+                        setUser(parsed);
+                        setIsLoading(false);
+                    } catch (parseError) {
+                        console.error('Error parsing user profile:', parseError);
+                        localStorage.removeItem('user_profile');
+                        setUser(null);
+                        setIsLoading(false);
+                    }
+                } else if (session) {
+                    // Navbar will handle populating localStorage, we just wait
+                    setIsLoading(false);
+                    return;
+                } else {
+                    setUser(null);
+                    setIsLoading(false);
+                    router.push('/');
+                }
+            } catch (error) {
+                console.error('Error in checkUser:', error);
+                setIsLoading(false);
             }
         };
 
@@ -57,8 +76,12 @@ export default function FeedPage() {
         window.addEventListener('storage', checkUser);
         window.addEventListener('userLogin', checkUser);
 
-        const storedBlocked = localStorage.getItem('blocked_users');
-        if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+        try {
+            const storedBlocked = localStorage.getItem('blocked_users');
+            if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+        } catch (error) {
+            console.error('Error loading blocked users:', error);
+        }
 
         return () => {
             window.removeEventListener('storage', checkUser);
@@ -208,6 +231,25 @@ export default function FeedPage() {
         !hiddenPostIds.includes(post.id) &&
         !blockedUsers.includes(post.user.name)
     );
+
+    if (isLoading) {
+        return (
+            <div className="container" style={{ paddingTop: '120px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                        width: '50px',
+                        height: '50px',
+                        border: '3px solid var(--border-glass)',
+                        borderTop: '3px solid var(--primary)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 20px'
+                    }}></div>
+                    <p style={{ color: 'var(--text-muted)' }}>Loading feed...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container animate-fade-in" style={{ paddingTop: '120px', display: 'flex', gap: '40px', alignItems: 'flex-start' }}>

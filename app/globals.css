@@ -280,3 +280,13 @@ nav a:hover {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px rgba(75, 24, 76, 0.15);
 }
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}

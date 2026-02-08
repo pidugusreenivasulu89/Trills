@@ -1,7 +1,15 @@
 'use client';
 
 import { SessionProvider } from "next-auth/react";
-import '@/lib/amplifyConfig';
+
+// Import Amplify config with error handling
+if (typeof window !== 'undefined') {
+    try {
+        require('@/lib/amplifyConfig');
+    } catch (error) {
+        console.error('Amplify configuration error:', error);
+    }
+}
 
 export function Providers({ children }) {
     return <SessionProvider>{children}</SessionProvider>;

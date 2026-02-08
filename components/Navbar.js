@@ -23,6 +23,9 @@ export default function Navbar() {
 
     useEffect(() => {
         const checkUser = async () => {
+            // Ensure we're on the client side
+            if (typeof window === 'undefined') return;
+
             const storedUser = localStorage.getItem('user_profile');
             let authUser = null;
 
