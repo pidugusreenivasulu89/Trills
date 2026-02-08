@@ -206,7 +206,7 @@ export default function Navbar() {
                         <Link href="/profile" style={{ display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: 'inherit', transition: '0.2s' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                 <span style={{ fontSize: '0.9rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    Hi, {user.name.split(' ')[0]}
+                                    Hi, {user.name ? user.name.split(' ')[0] : 'User'}
                                     {user.verified && <CheckCircle size={14} fill="#4B184C" color="white" />}
                                 </span>
                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.designation}</span>
@@ -215,7 +215,7 @@ export default function Navbar() {
                                 <img src={user.avatar} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} />
                             ) : (
                                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                                    {user.name.charAt(0)}
+                                    {user.name ? user.name.charAt(0) : 'U'}
                                 </div>
                             )}
                         </Link>
