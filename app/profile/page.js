@@ -41,9 +41,21 @@ function ProfileContent() {
                 setUser(userData);
                 setEditData(userData);
 
-                // Fetch real connection count
+                // Fetch real connection count and profile data
                 try {
                     const email = userData.email || 'sreenivas@trills.com';
+
+                    // Sync latest profile data
+                    try {
+                        const profileRes = await fetch(`/api/users?email=${email}`);
+                        const profileJson = await profileRes.json();
+                        if (profileJson.success && profileJson.user) {
+                            userData = { ...userData, ...profileJson.user };
+                            setUser(userData);
+                            localStorage.setItem('user_profile', JSON.stringify(userData));
+                        }
+                    } catch (err) { console.error('Profile sync failed', err); }
+
                     const res = await fetch(`/api/connections?email=${email}`);
                     const data = await res.json();
                     let count = data.count || 0;
@@ -190,10 +202,18 @@ function ProfileContent() {
             return;
         }
 
-        // Cycle through instructions
-        setTimeout(() => setScanInstruction('Now look straight at the camera'), 1000);
-        setTimeout(() => setScanInstruction('Processing facial features...'), 2000);
-        setTimeout(() => setScanInstruction('AI Match in progress...'), 3500);
+        // Interactive Instructions Cycle
+        const instructions = [
+            { time: 1000, text: 'Move closer to the camera 📷' },
+            { time: 2500, text: 'Turn your head slightly left ⬅️' },
+            { time: 4000, text: 'Turn your head slightly right ➡️' },
+            { time: 5500, text: 'Perfect! Hold still... ✨' },
+            { time: 7000, text: 'Verifying with database... 🔐' }
+        ];
+
+        instructions.forEach(({ time, text }) => {
+            setTimeout(() => setScanInstruction(text), time);
+        });
 
         // Simulate scanning process
         setTimeout(async () => {
@@ -263,7 +283,7 @@ function ProfileContent() {
             } else {
                 sendVerification(null);
             }
-        }, 5000); // 5 seconds scan
+        }, 8500); // Extended scan time for interaction
     };
 
     const cancelVerification = () => {
@@ -294,7 +314,7 @@ function ProfileContent() {
             <div className="glass-card" style={{ padding: '0', overflow: 'hidden', marginBottom: '30px', position: 'relative' }}>
                 <div style={{
                     height: '220px',
-                    background: (isEditing ? editData.banner : user.banner) ? `url(${isEditing ? editData.banner : user.banner}) center/cover` : 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+                    background: (isEditing ? editData.banner : user.banner) ? `url(${isEditing ? editData.banner : user.banner}) center/cover` : 'var(--primary)',
                     position: 'relative',
                     transition: '0.3s'
                 }}>
@@ -357,6 +377,11 @@ function ProfileContent() {
                             <div style={{ textAlign: 'center', background: 'rgba(75, 24, 76, 0.05)', padding: '10px 20px', borderRadius: '12px' }}>
                                 <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>{connectionCount}</div>
                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Connections</div>
+                            </div>
+                            <div style={{ textAlign: 'center', background: 'linear-gradient(135deg, #4B184C 0%, #C026D3 100%)', padding: '12px 24px', borderRadius: '16px', boxShadow: '0 4px 15px rgba(192, 38, 211, 0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '120px' }}>
+                                <Award size={20} color="#FFD700" style={{ marginBottom: '4px' }} />
+                                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: 'white' }}>{user.points ? user.points.toLocaleString() : '2,450'}</div>
+                                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}>Trills Miles</div>
                             </div>
                         </div>
                     </div>
@@ -437,24 +462,9 @@ function ProfileContent() {
                                 placeholder="Write something about your professional journey..."
                             />
                         </div>
-                        <div style={{ gridColumn: 'span 2' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>Avatar URL</label>
-                            <input
-                                type="text"
-                                value={editData.avatar?.startsWith('data:') ? 'Image uploaded (Data URL)' : (editData.avatar || '')}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val !== 'Image uploaded (Data URL)') {
-                                        setEditData(prev => ({ ...prev, avatar: val }));
-                                    }
-                                }}
-                                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'rgba(75, 24, 76, 0.02)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}
-                                placeholder="Paste image URL or use camera icon above"
-                            />
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-                                💡 Tip: Keep images under 1MB to ensure smooth profile saving.
-                            </p>
-                        </div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                            💡 Tip: Keep images under 1MB to ensure smooth profile saving.
+                        </p>
                     </div>
                     <div style={{ marginTop: '30px', display: 'flex', gap: '15px' }}>
                         <button onClick={handleSave} className="btn-primary" style={{ padding: '12px 40px' }}>Save Profile</button>
@@ -482,6 +492,12 @@ function ProfileContent() {
                                 style={{ background: activeTab === 'bookings' ? 'rgba(75, 24, 76, 0.1)' : 'transparent', border: 'none', color: activeTab === 'bookings' ? 'var(--primary)' : 'var(--text-muted)', padding: '12px 15px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', transition: '0.2s' }}
                             >
                                 <Calendar size={18} /> My Bookings
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('rewards')}
+                                style={{ background: activeTab === 'rewards' ? 'rgba(75, 24, 76, 0.1)' : 'transparent', border: 'none', color: activeTab === 'rewards' ? 'var(--primary)' : 'var(--text-muted)', padding: '12px 15px', borderRadius: '10px', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px', transition: '0.2s' }}
+                            >
+                                <Sparkles size={18} /> Trills Rewards
                             </button>
                             <button
                                 onClick={() => setActiveTab('settings')}
@@ -576,6 +592,62 @@ function ProfileContent() {
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+
+                        {activeTab === 'rewards' && (
+                            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <div className="glass-card" style={{ background: 'linear-gradient(135deg, #4B184C 0%, #C026D3 100%)', color: 'white', border: 'none' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Current Loyalty Status</div>
+                                            <h2 className="title-font" style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{user.tier || 'Gold'} Member</h2>
+                                            <p style={{ opacity: 0.9 }}>{3000 - (user.points || 2450) > 0 ? `You're ${3000 - (user.points || 2450)} miles away from **Platinum Status**` : 'You have reached Top Tier Status! 🌟'}</p>
+                                        </div>
+                                        <Award size={80} style={{ opacity: 0.3 }} />
+                                    </div>
+                                    <div style={{ marginTop: '25px', background: 'rgba(255,255,255,0.2)', height: '8px', borderRadius: '4px' }}>
+                                        <div style={{ width: '75%', height: '100%', background: 'white', borderRadius: '4px', boxShadow: '0 0 10px white' }}></div>
+                                    </div>
+                                </div>
+
+                                <div className="glass-card">
+                                    <h3 className="title-font" style={{ marginBottom: '20px' }}>Available Incentives</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div style={{ padding: '20px', border: '1px solid var(--border-glass)', borderRadius: '16px', background: 'rgba(75, 24, 76, 0.02)' }}>
+                                            <Sparkles size={24} color="var(--primary)" style={{ marginBottom: '12px' }} />
+                                            <h4 style={{ margin: '0 0 8px' }}>Free Workspace Day</h4>
+                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '15px' }}>Redeem 1,000 miles for a day pass at Nexus Co-working.</p>
+                                            <button className="btn-primary" style={{ width: '100%', padding: '8px' }}>Redeem 1000m</button>
+                                        </div>
+                                        <div style={{ padding: '20px', border: '1px solid var(--border-glass)', borderRadius: '16px', background: 'rgba(75, 24, 76, 0.02)' }}>
+                                            <Star size={24} color="#fbbf24" style={{ marginBottom: '12px' }} />
+                                            <h4 style={{ margin: '0 0 8px' }}>Complimentary Dessert</h4>
+                                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '15px' }}>Redeem 500 miles for a dessert at Luminary Dining.</p>
+                                            <button className="btn-outline" style={{ width: '100%', padding: '8px' }}>Redeem 500m</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="glass-card">
+                                    <h3 className="title-font" style={{ marginBottom: '20px' }}>Earning History</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-glass)' }}>
+                                            <div>
+                                                <div style={{ fontWeight: '600' }}>Nexus Co-working Booking</div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Feb 07, 2026</div>
+                                            </div>
+                                            <div style={{ fontWeight: '700', color: '#10B981' }}>+150m</div>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid var(--border-glass)' }}>
+                                            <div>
+                                                <div style={{ fontWeight: '600' }}>Profile Verification Bonus</div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Feb 05, 2026</div>
+                                            </div>
+                                            <div style={{ fontWeight: '700', color: '#10B981' }}>+500m</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -736,10 +808,31 @@ function ProfileContent() {
                                     <Shield size={18} /> Professional Badge Activated
                                 </div>
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         setIsVerifying(false);
                                         setVerificationStep(0);
+
+                                        // Refetch user data to ensure badge appears
+                                        try {
+                                            const email = user.email || 'sreenivas@trills.com';
+                                            const profileRes = await fetch(`/api/users?email=${email}`);
+                                            const profileJson = await profileRes.json();
+                                            if (profileJson.success && profileJson.user) {
+                                                const newUserData = { ...user, ...profileJson.user, verified: true };
+                                                localStorage.setItem('user_profile', JSON.stringify(newUserData));
+                                                window.dispatchEvent(new Event('userLogin'));
+                                                setUser(newUserData);
+                                            }
+                                        } catch (e) {
+                                            console.error('Refresh failed', e);
+                                        }
+
                                         showToast('Welcome to the verified community! ✨');
+
+                                        // Navigate back if they came from a redirect, otherwise just stay on profile
+                                        if (searchParams.get('verify') === 'true') {
+                                            router.push('/');
+                                        }
                                     }}
                                     className="btn-primary"
                                     style={{ width: '100%', padding: '15px' }}

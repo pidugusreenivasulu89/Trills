@@ -74,6 +74,57 @@ export async function POST(request) {
             verified: false
         });
 
+        // Send Verification Email
+        try {
+            const nodemailer = require('nodemailer');
+
+            // Check if credentials exist
+            if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS
+                    }
+                });
+
+                const mailOptions = {
+                    from: `"Trills Team" <${process.env.EMAIL_USER}>`,
+                    to: email,
+                    subject: 'Welcome to Trills! Please Verify Your Email',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <h1 style="color: #4B184C; margin: 0;">Trills</h1>
+                                <p style="color: #666; font-size: 14px;">Dine, Work, & Connect</p>
+                            </div>
+                            
+                            <h2 style="color: #4B184C;">Welcome, ${name}!</h2>
+                            <p>Thanks for joining the Trills community. We're excited to have you on board.</p>
+                            
+                            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+                                <p style="margin: 0; font-weight: bold;">Verify your account to unlock full features:</p>
+                                <a href="${process.env.NEXTAUTH_URL}/profile?verify=true" style="display: inline-block; background-color: #4B184C; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px;">Verify Identity</a>
+                            </div>
+
+                            <p>If you have any questions, feel free to reply to this email.</p>
+                            
+                            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                            <p style="font-size: 12px; color: #999; text-align: center;">&copy; 2026 Trills. All rights reserved.</p>
+                        </div>
+                    `
+                };
+
+                await transporter.sendMail(mailOptions);
+                console.log('Verification email sent to:', email);
+            } else {
+                console.warn('Email credentials (EMAIL_USER, EMAIL_PASS) not found in .env.local. Email not sent.');
+            }
+        } catch (emailError) {
+            console.error('Failed to send verification email:', emailError);
+            // Don't fail the registration if email fails
+        }
+
         // Return user data without password
         const userResponse = {
             id: user._id,

@@ -27,6 +27,7 @@ import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import CommentsScreen from './src/screens/CommentsScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import TermsScreen from './src/screens/TermsScreen';
+import RewardsScreen from './src/screens/RewardsScreen';
 import AdminScreen from './src/screens/AdminScreen';
 
 import { Home as HomeIcon, Compass, Calendar, MessageSquare, User } from 'lucide-react-native';
@@ -120,6 +121,7 @@ export default function App() {
                     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="Comments" component={CommentsScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+                    <Stack.Screen name="Rewards" component={RewardsScreen} options={{ headerShown: false }} />
                     <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
                 </Stack.Navigator>
             </NavigationContainer>

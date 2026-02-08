@@ -21,6 +21,16 @@ const UserSchema = new mongoose.Schema({
     },
     authProvider: { type: String, enum: ['email', 'google', 'facebook', 'apple'], default: 'email' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+
+    // Loyalty Program
+    points: { type: Number, default: 0 },
+    tier: { type: String, enum: ['Silver', 'Gold', 'Platinum', 'Black'], default: 'Silver' },
+    pointsHistory: [{
+        source: String, // e.g., 'Booking', 'Connection', 'Bonus'
+        points: Number,
+        timestamp: { type: Date, default: Date.now }
+    }],
+
     createdAt: { type: Date, default: Date.now }
 });
 

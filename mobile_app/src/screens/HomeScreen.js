@@ -9,19 +9,25 @@ import {
     SafeAreaView,
     StatusBar
 } from 'react-native';
-import { Star, ArrowRight, Quote, Users, MapPin, Zap } from 'lucide-react-native';
+import { Star, ArrowRight, Quote, Users, MapPin, Zap, Award } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import { Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
     const [topVenues, setTopVenues] = useState([]);
+    const [loyaltyData, setLoyaltyData] = useState({ points: 2450, tier: 'Gold' });
     const scrollY = React.useRef(new Animated.Value(0)).current;
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
     const slideAnim = React.useRef(new Animated.Value(30)).current;
 
     useEffect(() => {
         fetchTopVenues();
+        fetchLoyaltyData();
+        const unsubscribe = navigation.addListener('focus', fetchLoyaltyData);
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
@@ -34,15 +40,29 @@ export default function HomeScreen({ navigation }) {
                 useNativeDriver: true,
             })
         ]).start();
-    }, []);
+        return unsubscribe;
+    }, [navigation]);
 
     const fetchTopVenues = async () => {
         try {
             const response = await axios.get(ENDPOINTS.VENUES);
-            setTopVenues(response.data.slice(0, 3));
+            if (response.data) setTopVenues(response.data.slice(0, 3));
         } catch (error) {
             console.log('Error fetching venues:', error);
         }
+    };
+
+    const fetchLoyaltyData = async () => {
+        try {
+            const userData = await AsyncStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                setLoyaltyData({
+                    points: user.points || 2450,
+                    tier: user.tier || 'Silver'
+                });
+            }
+        } catch (e) { console.log(e); }
     };
 
     return (
@@ -57,21 +77,12 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Hero Section */}
                 <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.heroTitle}>Work, Dine, &{"\n"}
-                                <Text style={{ color: '#4B184C' }}>Experience</Text>
-                            </Text>
-                            <Text style={styles.heroSubtitle}>
-                                Discover the city's finest dining and events.
-                            </Text>
-                        </View>
-                        <Image
-                            source={{ uri: 'https://illustrations.popsy.co/purple/launching.svg' }}
-                            style={{ width: 100, height: 100, marginLeft: 10 }}
-                            resizeMode="contain"
-                        />
-                    </View>
+                    <Text style={styles.heroTitle}>Work, Dine, &{"\n"}
+                        <Text style={{ color: '#4B184C' }}>Experience</Text>
+                    </Text>
+                    <Text style={styles.heroSubtitle}>
+                        Discover the city's finest dining, co-working, and events.
+                    </Text>
                 </Animated.View>
 
                 {/* Quick Stats Section */}
@@ -99,13 +110,11 @@ export default function HomeScreen({ navigation }) {
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                         {/* Dining Card */}
-                        <View style={[styles.featureCard, { height: 260 }]}>
-                            <View style={{ height: 140, backgroundColor: '#FDF4FF', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
-                                <Image
-                                    source={{ uri: 'https://illustrations.popsy.co/purple/coffee-break.svg' }}
-                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
-                                />
-                            </View>
+                        <View style={styles.featureCard}>
+                            <Image
+                                source={{ uri: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000' }}
+                                style={styles.cardImage}
+                            />
                             <View style={styles.cardContent}>
                                 <View style={[styles.badge, { backgroundColor: 'rgba(75, 24, 76, 0.1)' }]}>
                                     <Text style={[styles.badgeText, { color: '#4B184C' }]}>Dineout</Text>
@@ -118,13 +127,11 @@ export default function HomeScreen({ navigation }) {
                         </View>
 
                         {/* Workspace Card */}
-                        <View style={[styles.featureCard, { height: 260 }]}>
-                            <View style={{ height: 140, backgroundColor: '#FDF4FF', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
-                                <Image
-                                    source={{ uri: 'https://illustrations.popsy.co/purple/remote-work.svg' }}
-                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
-                                />
-                            </View>
+                        <View style={styles.featureCard}>
+                            <Image
+                                source={{ uri: 'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=1000' }}
+                                style={styles.cardImage}
+                            />
                             <View style={styles.cardContent}>
                                 <View style={[styles.badge, { backgroundColor: 'rgba(75, 24, 76, 0.1)' }]}>
                                     <Text style={[styles.badgeText, { color: '#4B184C' }]}>Workspace</Text>
@@ -137,13 +144,11 @@ export default function HomeScreen({ navigation }) {
                         </View>
 
                         {/* Events Card */}
-                        <View style={[styles.featureCard, { height: 260 }]}>
-                            <View style={{ height: 140, backgroundColor: '#FDF4FF', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
-                                <Image
-                                    source={{ uri: 'https://illustrations.popsy.co/purple/celebration.svg' }}
-                                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
-                                />
-                            </View>
+                        <View style={styles.featureCard}>
+                            <Image
+                                source={{ uri: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1000' }}
+                                style={styles.cardImage}
+                            />
                             <View style={styles.cardContent}>
                                 <View style={[styles.badge, { backgroundColor: 'rgba(75, 24, 76, 0.1)' }]}>
                                     <Text style={[styles.badgeText, { color: '#4B184C' }]}>Events</Text>
@@ -155,6 +160,35 @@ export default function HomeScreen({ navigation }) {
                             </View>
                         </View>
                     </ScrollView>
+                </View>
+
+                {/* Trills Miles / Rewards Section */}
+                <View style={styles.section}>
+                    <TouchableOpacity
+                        style={styles.loyaltyCard}
+                        onPress={() => navigation.navigate('Profile')}
+                    >
+                        <LinearGradient
+                            colors={['#4B184C', '#86198f']}
+                            style={styles.loyaltyGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                        >
+                            <View style={styles.loyaltyLeft}>
+                                <View style={styles.milesBadge}>
+                                    <Text style={styles.milesValue}>{loyaltyData.points.toLocaleString()}</Text>
+                                    <Text style={styles.milesLabel}>Miles</Text>
+                                </View>
+                                <View style={{ marginLeft: 15 }}>
+                                    <Text style={styles.loyaltyTitle}>{loyaltyData.tier} Member</Text>
+                                    <Text style={styles.loyaltySub}>{3000 - loyaltyData.points > 0 ? `${3000 - loyaltyData.points} miles to Platinum` : 'Top Tier Status'}</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity style={styles.redeemBtn} onPress={() => navigation.navigate('Profile')}>
+                                <Text style={styles.redeemText}>Redeem</Text>
+                            </TouchableOpacity>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Testimonials */}
@@ -469,5 +503,64 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#7B2D7E',
         fontWeight: '600',
+    },
+    loyaltyCard: {
+        borderRadius: 24,
+        overflow: 'hidden',
+        elevation: 8,
+        shadowColor: '#4B184C',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+    },
+    loyaltyGradient: {
+        padding: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    loyaltyLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    milesBadge: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 16,
+        alignItems: 'center',
+        minWidth: 70,
+    },
+    milesValue: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '900',
+    },
+    milesLabel: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    loyaltyTitle: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '800',
+    },
+    loyaltySub: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 12,
+        marginTop: 2,
+    },
+    redeemBtn: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
+    },
+    redeemText: {
+        color: '#4B184C',
+        fontWeight: '800',
+        fontSize: 13,
     }
 });

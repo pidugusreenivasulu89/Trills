@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Roboto+Condensed:wght@300;400;700&display=swap');
 
 :root {
   --primary: #4B184C;
@@ -36,10 +36,14 @@ body {
 
 h1,
 h2,
-h3,
-h4,
 .title-font {
   font-family: 'Outfit', sans-serif;
+}
+
+h3,
+h4,
+.sub-title {
+  font-family: 'Roboto Condensed', sans-serif;
 }
 
 .glass {
@@ -234,4 +238,45 @@ nav a:hover {
     padding-bottom: 100px;
     /* Space for bottom nav */
   }
+}
+
+@keyframes flyIn {
+  0% {
+    transform: translate(-50vw, 100px) rotate(15deg) scale(1.5);
+    opacity: 0;
+  }
+
+  40% {
+    transform: translate(10vw, -40px) rotate(-10deg) scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(0, 15px) rotate(0deg) scale(1);
+    /* Perfect landing position */
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hover-lift {
+  transition: all 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(75, 24, 76, 0.15);
 }

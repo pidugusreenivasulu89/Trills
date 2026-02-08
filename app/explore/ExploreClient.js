@@ -23,6 +23,7 @@ function ExploreContent() {
     const [userLocation, setUserLocation] = useState(null);
     const [sortByDistance, setSortByDistance] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState(''); // New state for location search
 
     useEffect(() => {
         fetchVenues();
@@ -94,9 +95,15 @@ function ExploreContent() {
     };
 
     // Filter and Sort Logic
-    let filteredVenues = filter === 'all'
-        ? venues
-        : venues.filter(v => v.type === filter);
+    let filteredVenues = venues.filter(v => {
+        const matchesType = filter === 'all' || v.type === filter;
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery ||
+            v.name.toLowerCase().includes(searchLower) ||
+            v.address.toLowerCase().includes(searchLower) ||
+            v.category.toLowerCase().includes(searchLower);
+        return matchesType && matchesSearch;
+    });
 
     if (userLocation) {
         filteredVenues = filteredVenues.map(v => ({
@@ -188,7 +195,19 @@ function ExploreContent() {
             <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                 <h1 className="title-font" style={{ fontSize: '3rem', margin: 0 }}>Explore Venues</h1>
 
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="glass" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--border-glass)', borderRadius: '12px' }}>
+                        <Search size={16} color="var(--text-muted)" />
+                        <input
+                            type="text"
+                            placeholder="Search location or venue..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-main)', fontSize: '0.9rem', width: '200px' }}
+                        />
+                        {searchQuery && <X size={14} style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />}
+                    </div>
+
                     <button
                         onClick={getUserLocation}
                         className="glass"
@@ -230,6 +249,9 @@ function ExploreContent() {
                             <div key={venue.id} className="glass-card" style={{ padding: '0', overflow: 'hidden', opacity: isFull ? 0.8 : 1 }}>
                                 <div style={{ height: '200px', background: `url(${venue.image}) center/cover`, position: 'relative' }}>
                                     {isFull && <div className="sold-out">FULLY BOOKED</div>}
+                                    <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(255,215,0,0.9)', color: '#4B184C', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
+                                        <Sparkles size={12} fill="#4B184C" /> Earn 200m
+                                    </div>
                                     {venue.distance && (
                                         <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                             <Navigation size={12} /> {venue.distance} km
@@ -299,7 +321,34 @@ function ExploreContent() {
                             <div style={{ textAlign: 'center', padding: '20px 0' }}>
                                 <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', fontSize: '2rem' }}>✓</div>
                                 <h3 className="title-font" style={{ marginBottom: '10px' }}>Booking Confirmed!</h3>
-                                <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>Your experience at {selectedVenue.name} is scheduled.</p>
+                                <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Your experience at {selectedVenue.name} is scheduled.</p>
+
+                                <div style={{ background: 'rgba(75, 24, 76, 0.05)', padding: '15px', borderRadius: '12px', marginBottom: '20px' }}>
+                                    <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', color: 'var(--primary)' }}>📍 Getting There</h4>
+                                    <div style={{ width: '100%', height: '150px', borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
+                                        <iframe
+                                            width="100%"
+                                            height="100%"
+                                            frameBorder="0"
+                                            style={{ border: 0 }}
+                                            src={`https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${selectedVenue.coordinates ? `${selectedVenue.coordinates.lat},${selectedVenue.coordinates.lng}` : encodeURIComponent(selectedVenue.address)}`}
+                                            allowFullScreen
+                                        ></iframe>
+                                    </div>
+                                    <button
+                                        onClick={() => openDirections(selectedVenue.coordinates?.lat, selectedVenue.coordinates?.lng)}
+                                        className="btn-outline"
+                                        style={{ width: '100%', fontSize: '0.85rem' }}
+                                    >
+                                        <Navigation size={14} style={{ marginRight: '5px' }} /> Open Live Navigation
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ecfdf5', padding: '12px', borderRadius: '8px', color: '#047857', fontSize: '0.85rem', textAlign: 'left' }}>
+                                    <Clock size={18} />
+                                    <span>Reminder set! We'll notify you 1 hour before your booking starts.</span>
+                                </div>
+
                                 <button onClick={closeModals} className="btn-primary" style={{ marginTop: '30px', width: '100%' }}>Done</button>
                             </div>
                         ) : showPayment ? (

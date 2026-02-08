@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
     FlatList,
     SafeAreaView,
     StatusBar,
+    Easing
 } from 'react-native';
 import { Heart, Users, Calendar, Shield, ArrowRight } from 'lucide-react-native';
 
@@ -53,6 +54,54 @@ export default function WelcomeScreen({ navigation }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollX = useRef(new Animated.Value(0)).current;
     const flatListRef = useRef(null);
+
+    // Concept Animations
+    const birdAnim = useRef({
+        x: new Animated.Value(-100),
+        y: new Animated.Value(150),
+        scale: new Animated.Value(1),
+    }).current;
+    const heartPulse = useRef(new Animated.Value(1)).current;
+    const logoFade = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        // Sequenced flight animation
+        Animated.sequence([
+            // 1. Logo fades in first
+            Animated.timing(logoFade, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+            }),
+            // 2. Bird flies in and lands
+            Animated.parallel([
+                Animated.timing(birdAnim.x, {
+                    toValue: width / 2 - 90, // Calibrated landing position for 'T'
+                    duration: 2000,
+                    easing: Easing.out(Easing.exp),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(birdAnim.y, {
+                    toValue: 20, // Sit better on the text baseline
+                    duration: 2000,
+                    easing: Easing.out(Easing.exp),
+                    useNativeDriver: true,
+                }),
+                Animated.sequence([
+                    Animated.timing(birdAnim.scale, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
+                    Animated.timing(birdAnim.scale, { toValue: 1, duration: 1000, useNativeDriver: true }),
+                ])
+            ]),
+            // 3. Heart Pulse after landing
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(heartPulse, { toValue: 1.3, duration: 500, useNativeDriver: true }),
+                    Animated.timing(heartPulse, { toValue: 1, duration: 500, useNativeDriver: true }),
+                ]),
+                { iterations: 5 }
+            )
+        ]).start();
+    }, []);
 
     const onViewableItemsChanged = useRef(({ viewableItems }) => {
         if (viewableItems && viewableItems.length > 0) {
@@ -136,11 +185,26 @@ export default function WelcomeScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-            {/* Header / Skip */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-                    <Text style={styles.skipText}>Skip</Text>
-                </TouchableOpacity>
+            {/* Animated Brand Intro */}
+            <View style={styles.brandIntro}>
+                <Animated.View style={[styles.birdContainer, {
+                    transform: [
+                        { translateX: birdAnim.x },
+                        { translateY: birdAnim.y },
+                        { scale: birdAnim.scale }
+                    ]
+                }]}>
+                    <View style={styles.birdWithLove}>
+                        <Animated.View style={{ transform: [{ scale: heartPulse }] }}>
+                            <Heart size={14} color="#EF4444" fill="#EF4444" style={styles.heartIcon} />
+                        </Animated.View>
+                        <Text style={{ fontSize: 40 }}>🐦</Text>
+                    </View>
+                </Animated.View>
+
+                <Animated.View style={[styles.logoContainer, { opacity: logoFade }]}>
+                    <Text style={styles.logoText}>Trills</Text>
+                </Animated.View>
             </View>
 
             {/* Slides */}
@@ -208,6 +272,42 @@ const styles = StyleSheet.create({
         color: '#64748b',
         fontSize: 16,
         fontWeight: '600',
+    },
+    brandIntro: {
+        height: 220,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FDF4FF',
+        borderBottomLeftRadius: 50,
+        borderBottomRightRadius: 50,
+        paddingTop: 20,
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#4B184C',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+    },
+    birdContainer: {
+        position: 'absolute',
+        zIndex: 10,
+    },
+    birdWithLove: {
+        alignItems: 'center',
+    },
+    heartIcon: {
+        marginBottom: -10,
+        zIndex: 2,
+    },
+    logoContainer: {
+        alignItems: 'center',
+        paddingTop: 40,
+    },
+    logoText: {
+        fontSize: 56,
+        fontWeight: '900',
+        color: '#4B184C',
+        letterSpacing: -2,
     },
     slide: {
         width: width,

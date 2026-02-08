@@ -31,7 +31,9 @@ export default function ProfileScreen({ navigation }) {
     const [stats, setStats] = useState({
         connections: 0,
         events: 0,
-        vibeScore: 0
+        vibeScore: 0,
+        points: 2450,
+        tier: 'Gold'
     });
     const [loading, setLoading] = useState(true);
 
@@ -73,6 +75,8 @@ export default function ProfileScreen({ navigation }) {
                         const newStats = {
                             ...prev,
                             connections: connCount,
+                            points: parsedUser.points || (2450 + (connCount * 10)),
+                            tier: parsedUser.tier || 'Silver',
                         };
                         return {
                             ...newStats,
@@ -123,6 +127,7 @@ export default function ProfileScreen({ navigation }) {
 
     const menuItems = [
         { label: 'My Bookings', target: 'Bookings', icon: <Calendar size={20} color="#4B184C" /> },
+        { label: 'Trills Rewards', target: 'Rewards', icon: <Star size={20} color="#4B184C" /> },
         { label: 'Payment Methods', target: 'Payments', icon: <Star size={20} color="#4B184C" /> },
         { label: 'Privacy Settings', target: 'PrivacySettings', icon: <Shield size={20} color="#4B184C" /> },
     ];
@@ -168,24 +173,23 @@ export default function ProfileScreen({ navigation }) {
                             </View>
                         )}
                     </View>
-                    <Text style={styles.username}>@{user?.username || 'user'}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: user?.verified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(75, 24, 76, 0.05)' }]}>
-                        <Text style={[styles.statusText, { color: user?.verified ? '#10B981' : '#4B184C' }]}>
-                            {user?.verified ? 'Verified Member' : 'Unverified Member'}
-                        </Text>
+                    <View style={styles.tierContainer}>
+                        <Award size={14} color="#D4AF37" fill="#D4AF37" />
+                        <Text style={styles.tierText}>{stats.tier} Member</Text>
                     </View>
+                    <Text style={styles.username}>@{user?.username || 'user'}</Text>
                 </View>
 
                 {/* Stats Container */}
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>{stats.connections}</Text>
-                        <Text style={styles.statLabel}>Connections</Text>
+                        <Text style={styles.statLabel}>Friends</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>{stats.events}</Text>
-                        <Text style={styles.statLabel}>Events</Text>
+                        <Text style={styles.statValue}>{stats.points}</Text>
+                        <Text style={styles.statLabel}>Miles</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
@@ -276,7 +280,9 @@ const styles = StyleSheet.create({
     verifiedBadge: { position: 'absolute', bottom: 15, right: 5, backgroundColor: '#4B184C', borderRadius: 10, padding: 2, borderWidth: 2, borderColor: '#FFFFFF' },
     adminBadge: { backgroundColor: '#C026D3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
     adminBadgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
-    name: { fontSize: 24, fontWeight: '800', color: '#1E293B' },
+    tierContainer: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fdf4ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginTop: 8, borderWidth: 1, borderColor: '#FAE8FF' },
+    tierText: { fontSize: 13, fontWeight: '800', color: '#86198f', textTransform: 'uppercase' },
+    name: { fontSize: 24, fontWeight: '800', color: '#1E293B', marginTop: 8 },
     username: { fontSize: 14, color: '#64748B', marginTop: 2 },
     statusBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, marginTop: 12 },
     statusText: { fontSize: 13, fontWeight: '700' },

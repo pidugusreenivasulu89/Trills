@@ -46,7 +46,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
                 </Section>
 
                 <Section title="3. Why We Collect This" icon={<Info size={18} color="#4B184C" />}>
-                    Your information is used strictly for verifying identity, preventing fraudulent accounts, and maintaining a safe environment. We do NOT use your data for advertising or resale.
+                    Your information is used strictly for verifying identity, preventing fraudulent accounts, and maintaining a safe environment. We do NOT use Advertising Identifiers (IDFA/AAID) or track your activity across other apps. We also collect engagement data (Trills Miles) solely to provide loyalty rewards and incentives.
                 </Section>
 
                 <Section title="4. Face Verification" icon={<UserCheck size={18} color="#4B184C" />}>

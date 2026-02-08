@@ -55,6 +55,8 @@ export async function POST(request) {
             designation: user.designation,
             location: user.location,
             role: user.role || 'user',
+            points: user.points || 0,
+            tier: user.tier || 'Silver',
             createdAt: user.createdAt
         };
 

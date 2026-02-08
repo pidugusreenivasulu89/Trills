@@ -122,13 +122,36 @@ export default function HomeClient() {
                     borderRadius: '50%'
                 }}></div>
 
-                <h1 className="title-font" style={{ fontSize: '4.5rem', fontWeight: '800', marginBottom: '20px', lineHeight: '1.1', zIndex: 1 }}>
+                {/* Animated Brand Concept */}
+                <div style={{
+                    position: 'relative',
+                    marginBottom: '20px',
+                    height: '140px',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 5,
+                    marginTop: '80px' /* Bring it down */
+                }}>
+                    <div style={{
+                        fontSize: '6rem',
+                        fontWeight: '900',
+                        color: 'var(--primary)',
+                        letterSpacing: '-2px',
+                        position: 'relative',
+                        zIndex: 20, /* Text on top */
+                        textShadow: '0 10px 30px rgba(75, 24, 76, 0.2)'
+                    }}>
+                        Trills
+                    </div>
+                </div>
+
+                <h1 className="title-font" style={{ fontSize: '4.5rem', fontWeight: '800', marginBottom: '20px', lineHeight: '1.1' }}>
                     Work, Dine, & <span style={{ color: 'var(--primary)' }}>Experience</span>
                 </h1>
-                <div style={{ position: 'relative', width: '300px', height: '180px', marginBottom: '20px' }}>
-                    <img src="https://illustrations.popsy.co/purple/launching.svg" style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Hero" />
-                </div>
-                <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '600px', marginBottom: '40px', zIndex: 1 }}>
+                <p className="sub-title" style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '600px', marginBottom: '40px' }}>
                     Discover the city's finest dining, premium co-working spaces, and exclusive social events all in one place.
                 </p>
                 <div style={{ display: 'flex', gap: '20px', zIndex: 1 }}>
@@ -159,9 +182,7 @@ export default function HomeClient() {
                     <h2 className="title-font" style={{ fontSize: '2.5rem', marginBottom: '40px' }}>Featured Experiences</h2>
                     <div className="grid-3">
                         <div className="glass-card hover-lift" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-                            <div style={{ height: '240px', background: 'rgba(75, 24, 76, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                                <img src="https://illustrations.popsy.co/purple/coffee-break.svg" style={{ maxHeight: '100%', maxWidth: '100%' }} alt="Dining" />
-                            </div>
+                            <div style={{ height: '240px', background: 'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000") center/cover' }}></div>
                             <div style={{ padding: '32px' }}>
                                 <span className="badge badge-primary" style={{ marginBottom: '16px', background: 'rgba(75, 24, 76, 0.1)', color: 'var(--primary)' }}>Dineout</span>
                                 <h3 className="title-font" style={{ fontSize: '1.8rem', marginBottom: '12px' }}>Premium Dining</h3>
@@ -171,9 +192,7 @@ export default function HomeClient() {
                         </div>
 
                         <div className="glass-card hover-lift" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-                            <div style={{ height: '240px', background: 'rgba(75, 24, 76, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                                <img src="https://illustrations.popsy.co/purple/remote-work.svg" style={{ maxHeight: '100%', maxWidth: '100%' }} alt="Workspace" />
-                            </div>
+                            <div style={{ height: '240px', background: 'url("https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=1000") center/cover' }}></div>
                             <div style={{ padding: '32px' }}>
                                 <span className="badge badge-primary" style={{ marginBottom: '16px', background: 'rgba(75, 24, 76, 0.1)', color: 'var(--primary)' }}>Workspace</span>
                                 <h3 className="title-font" style={{ fontSize: '1.8rem', marginBottom: '12px' }}>Co-working Spaces</h3>
@@ -183,9 +202,7 @@ export default function HomeClient() {
                         </div>
 
                         <div className="glass-card hover-lift" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-                            <div style={{ height: '240px', background: 'rgba(75, 24, 76, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                                <img src="https://illustrations.popsy.co/purple/celebration.svg" style={{ maxHeight: '100%', maxWidth: '100%' }} alt="Events" />
-                            </div>
+                            <div style={{ height: '240px', background: 'url("https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1000") center/cover' }}></div>
                             <div style={{ padding: '32px' }}>
                                 <span className="badge badge-primary" style={{ marginBottom: '16px', background: 'rgba(75, 24, 76, 0.1)', color: 'var(--primary)' }}>Events</span>
                                 <h3 className="title-font" style={{ fontSize: '1.8rem', marginBottom: '12px' }}>Exclusive Events</h3>
@@ -200,7 +217,7 @@ export default function HomeClient() {
                 <section style={{ marginBottom: '120px', background: 'rgba(75, 24, 76, 0.03)', padding: '80px 40px', borderRadius: '40px', margin: '0 -40px 120px -40px' }}>
                     <div style={{ textAlign: 'center', marginBottom: '60px' }}>
                         <h2 className="title-font" style={{ fontSize: '3rem', marginBottom: '15px' }}>What Our Community Says</h2>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>Join thousands of professionals already using Trills</p>
+                        <p className="sub-title" style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>Join thousands of professionals already using Trills</p>
                     </div>
 
                     <div className="grid-3" style={{ gap: '30px' }}>
@@ -253,7 +270,7 @@ export default function HomeClient() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px' }}>
                         <div>
                             <h2 className="title-font" style={{ fontSize: '2.5rem' }}>Top Venues</h2>
-                            <p style={{ color: 'var(--text-muted)' }}>Highly rated by our community</p>
+                            <p className="sub-title" style={{ color: 'var(--text-muted)' }}>Highly rated by our community</p>
                         </div>
                         <Link href="/explore" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '600' }}>View All →</Link>
                     </div>

@@ -21,10 +21,10 @@ export async function POST(req) {
 
         if (session) {
             console.log('Session Found for:', session.user.email);
-            userEmail = session.user.email;
+            userEmail = session.user.email.toLowerCase();
         } else if (email) {
             console.log('No Session, using provided email:', email);
-            userEmail = email;
+            userEmail = email.toLowerCase();
         } else {
             console.error('No Session or Email provided');
             return NextResponse.json({ error: 'Unauthorized: No session or email found' }, { status: 401 });
@@ -43,6 +43,7 @@ export async function POST(req) {
                 name: body.name || userEmail.split('@')[0], // Fallback name
                 verified: true,
                 faceImage: faceImage,
+                image: faceImage, // Set the verified face as the main profile picture
                 verificationLocation: location ? {
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,

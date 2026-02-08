@@ -30,7 +30,9 @@ export async function GET(request) {
                     verified: user.verified,
                     designation: user.designation,
                     location: user.location,
-                    image: user.image
+                    image: user.image,
+                    points: user.points || 0,
+                    tier: user.tier || 'Silver'
                 }
             }, { headers: corsHeaders });
         }
