@@ -31,6 +31,9 @@ function ProfileContent() {
         const checkUser = async () => {
             if (sessionStatus === 'loading') return;
 
+            // Ensure we're on the client side
+            if (typeof window === 'undefined') return;
+
             const stored = localStorage.getItem('user_profile');
             if (stored) {
                 const userData = JSON.parse(stored);

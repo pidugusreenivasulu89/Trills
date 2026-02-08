@@ -35,6 +35,9 @@ export default function FeedPage() {
             // Wait for session to be determined
             if (sessionStatus === 'loading') return;
 
+            // Ensure we're on the client side
+            if (typeof window === 'undefined') return;
+
             const stored = localStorage.getItem('user_profile');
             if (stored) {
                 const parsed = JSON.parse(stored);
