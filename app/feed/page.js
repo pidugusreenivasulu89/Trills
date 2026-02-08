@@ -61,7 +61,7 @@ export default function FeedPage() {
             window.removeEventListener('storage', checkUser);
             window.removeEventListener('userLogin', checkUser);
         };
-    }, []);
+    }, [router, session, sessionStatus]);
 
     const handlePost = (e) => {
         if (e) e.preventDefault();
