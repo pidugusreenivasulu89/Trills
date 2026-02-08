@@ -50,9 +50,9 @@ function ProfileContent() {
                         const profileRes = await fetch(`/api/users?email=${email}`);
                         const profileJson = await profileRes.json();
                         if (profileJson.success && profileJson.user) {
-                            userData = { ...userData, ...profileJson.user };
-                            setUser(userData);
-                            localStorage.setItem('user_profile', JSON.stringify(userData));
+                            const updatedUser = { ...userData, ...profileJson.user };
+                            setUser(updatedUser);
+                            localStorage.setItem('user_profile', JSON.stringify(updatedUser));
                         }
                     } catch (err) { console.error('Profile sync failed', err); }
 
