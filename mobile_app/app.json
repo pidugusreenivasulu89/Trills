@@ -4,7 +4,7 @@
     "slug": "trills",
     "scheme": "trillsauth",
     "version": "2.0.0",
-    "sdkVersion": "51.0.0",
+    "sdkVersion": "52.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -21,7 +21,7 @@
       "bundleIdentifier": "com.trills.socialvibe"
     },
     "android": {
-      "package": "com.trills.socialvibe",
+      "package": "in.trills.socialvibe",
       "versionCode": 13,
       "permissions": [
         "CAMERA",
@@ -44,6 +44,21 @@
       "eas": {
         "projectId": "8706a40c-88c5-439e-8bdc-858449b49349"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
+    ]
   }
 }
