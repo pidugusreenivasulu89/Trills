@@ -58,7 +58,7 @@ export const authOptions = {
                         username: username,
                         email: user.email,
                         image: user.image,
-                        authProvider: account.provider,
+                        authProvider: account.provider.toLowerCase(),
                         verified: false
                     });
                     console.log("NextAuth: User created successfully");
@@ -80,7 +80,7 @@ export const authOptions = {
     },
     pages: {
         signIn: '/login',
-        error: '/auth/error',
+        error: '/login',
     },
 };
 
