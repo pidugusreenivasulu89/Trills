@@ -73,7 +73,13 @@ export default function Navbar() {
             // 2. Decide what to do based on authUser and currentProfile
             if (authUser) {
                 const stored = localStorage.getItem('user_profile');
-                let parsed = stored ? JSON.parse(stored) : null;
+                let parsed = null;
+                try {
+                    parsed = stored ? JSON.parse(stored) : null;
+                } catch (e) {
+                    console.error('Navbar: JSON Parse error 1', e);
+                    localStorage.removeItem('user_profile');
+                }
 
                 if (parsed && (parsed.email === authUser.email || !parsed.email)) {
                     // Sync fields
@@ -86,6 +92,7 @@ export default function Navbar() {
 
                     if (updated) {
                         localStorage.setItem('user_profile', JSON.stringify(parsed));
+                        window.dispatchEvent(new Event('userLogin'));
                     }
                     setUser(parsed);
                 } else {
@@ -100,13 +107,19 @@ export default function Navbar() {
                         banner: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000'
                     };
                     localStorage.setItem('user_profile', JSON.stringify(profile));
+                    window.dispatchEvent(new Event('userLogin'));
                     setUser(profile);
                 }
             } else {
                 // If no session, check if we have a local profile
                 const stored = localStorage.getItem('user_profile');
                 if (stored) {
-                    setUser(JSON.parse(stored));
+                    try {
+                        setUser(JSON.parse(stored));
+                    } catch (e) {
+                        console.error('Navbar: JSON Parse error 2', e);
+                        localStorage.removeItem('user_profile');
+                    }
                 } else {
                     setUser(null);
                 }
