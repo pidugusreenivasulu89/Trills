@@ -92,7 +92,7 @@ function ProfileContent() {
             window.removeEventListener('storage', checkUser);
             window.removeEventListener('userLogin', checkUser);
         };
-    }, []);
+    }, [searchParams, router, session, sessionStatus]);
 
     const handleSave = async () => {
         try {
