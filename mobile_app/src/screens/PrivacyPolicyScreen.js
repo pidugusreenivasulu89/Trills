@@ -69,8 +69,29 @@ export default function PrivacyPolicyScreen({ navigation }) {
                     You have the right to access, correct, or request deletion of your data and account, subject to legal obligations.
                 </Section>
 
-                <Section title="9. Children's Privacy" icon={<Baby size={18} color="#4B184C" />}>
-                    The Platform is intended for users 18 years and above. We do not knowingly collect data from minors.
+                <Section title="9. Child Safety and CSAE Policy" icon={<Baby size={18} color="#4B184C" />}>
+                    Trills, developed and published by Trills Media and Entertainment Private Limited, is committed to maintaining a safe and secure environment for all users. We have a zero-tolerance policy toward Child Sexual Abuse and Exploitation (CSAE).
+                    {'\n\n'}
+                    <Text style={{ fontWeight: '700' }}>Prohibited Content and Behavior</Text>
+                    {'\n'}
+                    Trills strictly prohibits any content, activity, or behavior that involves or promotes:
+                    {'\n'}• Child sexual abuse or exploitation in any form
+                    {'\n'}• Creation, distribution, possession, or consumption of child sexual abuse material (CSAM)
+                    {'\n'}• Grooming, sexual solicitation, or inappropriate interaction with minors
+                    {'\n'}• Any activity that endangers or exploits children sexually
+                    {'\n\n'}
+                    <Text style={{ fontWeight: '700' }}>Enforcement and Reporting</Text>
+                    {'\n'}
+                    If CSAE-related content or behavior is identified, Trills will take immediate action, which may include:
+                    {'\n'}• Removal of the offending content
+                    {'\n'}• Suspension or permanent termination of user accounts
+                    {'\n'}• Reporting to appropriate legal authorities
+                    {'\n\n'}
+                    Report concerns at: connect@trills.in
+                    {'\n\n'}
+                    <Text style={{ fontWeight: '700' }}>Commitment to Compliance</Text>
+                    {'\n'}
+                    Trills is committed to complying with all applicable child safety laws and Google Play policies. The Platform is intended for users 18 years and above.
                 </Section>
 
                 <Section title="10. Changes to Policy" icon={<RefreshCcw size={18} color="#4B184C" />}>
@@ -83,7 +104,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
                 </Section>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Last Updated: 6 February 2026</Text>
+                    <Text style={styles.footerText}>Last Updated: 9 February 2026</Text>
                     <Text style={styles.footerText}>© 2026 Trills Media and Entertainment Pvt. Ltd.</Text>
                 </View>
 

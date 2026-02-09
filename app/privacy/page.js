@@ -4,7 +4,7 @@ export default function PrivacyPage() {
     return (
         <div className="container animate-fade-in" style={{ paddingTop: '60px', paddingBottom: '100px', maxWidth: '900px' }}>
             <h1 className="title-font" style={{ fontSize: '3rem', marginBottom: '10px' }}>Privacy Policy</h1>
-            <p style={{ marginBottom: '40px', color: 'var(--text-muted)' }}>Last updated: 6 February 2026</p>
+            <p style={{ marginBottom: '40px', color: 'var(--text-muted)' }}>Last updated: 9 February 2026</p>
 
             <div className="glass-card" style={{ padding: '40px', lineHeight: '1.7', color: 'var(--text-main)' }}>
                 <p style={{ marginBottom: '30px' }}>
@@ -131,8 +131,36 @@ export default function PrivacyPage() {
                 </section>
 
                 <section style={{ marginBottom: '40px' }}>
-                    <h2 className="title-font" style={{ fontSize: '1.75rem', marginBottom: '20px', color: 'var(--accent-primary)' }}>9. Children’s Privacy</h2>
-                    <p>The Platform is intended for users <strong>18 years of age and above</strong>. We do not knowingly collect personal data from minors.</p>
+                    <h2 className="title-font" style={{ fontSize: '1.75rem', marginBottom: '20px', color: 'var(--accent-primary)' }}>9. Child Safety and CSAE Policy</h2>
+                    <p style={{ marginBottom: '15px' }}>
+                        Trills, developed and published by Trills Media and Entertainment Private Limited, is committed to maintaining a safe and secure environment for all users. We have a zero-tolerance policy toward Child Sexual Abuse and Exploitation (CSAE).
+                    </p>
+
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '10px' }}>Prohibited Content and Behavior</h3>
+                    <p style={{ marginBottom: '10px' }}>Trills strictly prohibits any content, activity, or behavior that involves or promotes:</p>
+                    <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                        <li>Child sexual abuse or exploitation in any form</li>
+                        <li>Creation, distribution, possession, or consumption of child sexual abuse material (CSAM)</li>
+                        <li>Grooming, sexual solicitation, or inappropriate interaction with minors</li>
+                        <li>Any activity that endangers or exploits children sexually</li>
+                    </ul>
+                    <p style={{ marginBottom: '20px' }}>Such content or behavior is not permitted under any circumstances on the Trills platform.</p>
+
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '10px' }}>Enforcement and Reporting</h3>
+                    <p style={{ marginBottom: '10px' }}>If CSAE-related content or behavior is identified, Trills will take immediate action, which may include:</p>
+                    <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                        <li>Removal of the offending content</li>
+                        <li>Suspension or permanent termination of user accounts</li>
+                        <li>Reporting to appropriate legal authorities, in accordance with applicable laws</li>
+                    </ul>
+                    <p style={{ marginBottom: '20px' }}>
+                        Users may report child safety or CSAE-related concerns by contacting us at: <a href="mailto:connect@trills.in" style={{ color: 'var(--accent-primary)' }}>connect@trills.in</a>
+                    </p>
+
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '10px' }}>Commitment to Compliance</h3>
+                    <p>
+                        Trills Media and Entertainment Private Limited is committed to complying with all applicable child safety laws and Google Play policies related to the prevention of Child Sexual Abuse and Exploitation. The Platform is intended for users 18 years of age and above.
+                    </p>
                 </section>
 
                 <section style={{ marginBottom: '40px' }}>
