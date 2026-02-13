@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "in.trills.socialvibe",
-      "versionCode": 13,
+      "versionCode": 200,
       "permissions": [
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
