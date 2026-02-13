@@ -9,7 +9,8 @@ import {
     FlatList,
     SafeAreaView,
     StatusBar,
-    Easing
+    Easing,
+    Image
 } from 'react-native';
 import { Heart, Users, Calendar, Shield, ArrowRight } from 'lucide-react-native';
 
@@ -198,7 +199,11 @@ export default function WelcomeScreen({ navigation }) {
                         <Animated.View style={{ transform: [{ scale: heartPulse }] }}>
                             <Heart size={14} color="#EF4444" fill="#EF4444" style={styles.heartIcon} />
                         </Animated.View>
-                        <Text style={{ fontSize: 40 }}>🐦</Text>
+                        <Image
+                            source={require('../../assets/icon.png')}
+                            style={styles.logoInApp}
+                            resizeMode="contain"
+                        />
                     </View>
                 </Animated.View>
 
@@ -296,8 +301,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     heartIcon: {
-        marginBottom: -10,
+        marginBottom: -5,
         zIndex: 2,
+    },
+    logoInApp: {
+        width: 60,
+        height: 60,
     },
     logoContainer: {
         alignItems: 'center',
