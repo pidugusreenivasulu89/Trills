@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "in.trills.socialvibe",
-      "versionCode": 201,
+      "versionCode": 203,
       "permissions": [
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
@@ -39,10 +39,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "owner": "sreeni89s-organization",
     "extra": {
       "eas": {
-        "projectId": "8706a40c-88c5-439e-8bdc-858449b49349"
+        "projectId": "59546cb0-3554-45f5-bdc7-66d3fe1f95dd"
       }
     },
     "plugins": [
