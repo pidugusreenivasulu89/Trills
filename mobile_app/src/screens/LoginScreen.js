@@ -19,6 +19,7 @@ import { Alert } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 
 import axios from 'axios';
 import { API_BASE_URL } from '../api/config';
@@ -26,6 +27,16 @@ import { API_BASE_URL } from '../api/config';
 WebBrowser.maybeCompleteAuthSession();
 
 const { width, height } = Dimensions.get('window');
+
+const googleRedirectUri = makeRedirectUri({
+    scheme: 'trillsauth',
+    preferLocalhost: true
+});
+
+const fbRedirectUri = makeRedirectUri({
+    scheme: 'trillsauth',
+    preferLocalhost: true
+});
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -43,20 +54,27 @@ export default function LoginScreen({ navigation }) {
 
     // Google Auth
     const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-        androidClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
+        // For production (Play Store), you MUST create a separate "Android" Client ID in Google Cloud Console
+        // and register the SHA-1 of your signing key.
+        androidClientId: '1001936941616-p4bb92evlgvh8bdsokk5s8sm4nodcjd8.apps.googleusercontent.com',
         iosClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
-        expoClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
+        webClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
+        redirectUri: googleRedirectUri,
     });
 
     // Facebook Auth
     const [facebookRequest, facebookResponse, facebookPromptAsync] = Facebook.useAuthRequest({
         clientId: '1667532970748314',
+        redirectUri: fbRedirectUri,
     });
 
     React.useEffect(() => {
         if (googleResponse?.type === 'success') {
             const { authentication } = googleResponse;
             handleSocialBackendLogin('google', authentication.accessToken);
+        } else if (googleResponse?.type === 'error') {
+            console.error('Google Auth Error:', googleResponse.error);
+            Alert.alert('Google Auth Error', googleResponse.error?.message || 'Failed to authenticate');
         }
     }, [googleResponse]);
 
@@ -64,6 +82,9 @@ export default function LoginScreen({ navigation }) {
         if (facebookResponse?.type === 'success') {
             const { authentication } = facebookResponse;
             handleSocialBackendLogin('facebook', authentication.accessToken);
+        } else if (facebookResponse?.type === 'error') {
+            console.error('Facebook Auth Error:', facebookResponse.error);
+            Alert.alert('Facebook Auth Error', facebookResponse.error?.message || 'Failed to authenticate');
         }
     }, [facebookResponse]);
 
@@ -264,7 +285,6 @@ export default function LoginScreen({ navigation }) {
                                     resizeMode="contain"
                                 />
                             </View>
-                            <Text style={styles.appName}>Trills</Text>
                             <Text style={styles.tagline}>Connect. Share. Celebrate.</Text>
                         </View>
 
@@ -371,22 +391,15 @@ export default function LoginScreen({ navigation }) {
                                         onPress={handleLogin}
                                         onPressIn={() => animateButton(0.95)}
                                         onPressOut={() => animateButton(1)}
-                                        activeOpacity={1}
-                                        style={{ marginBottom: 24 }}
+                                        activeOpacity={0.8}
+                                        style={styles.loginButton}
                                     >
-                                        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                                            <LinearGradient
-                                                colors={['#C026D3', '#701A75']} // Animated Purple Theme
-                                                style={styles.loginButtonGradient}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 0 }}
-                                            >
-                                                {isLoading ? (
-                                                    <ActivityIndicator color="#fff" />
-                                                ) : (
-                                                    <Text style={styles.loginButtonText}>Sign In</Text>
-                                                )}
-                                            </LinearGradient>
+                                        <Animated.View style={[styles.loginButtonContent, { transform: [{ scale: buttonScale }] }]}>
+                                            {isLoading ? (
+                                                <ActivityIndicator color="#fff" />
+                                            ) : (
+                                                <Text style={styles.loginButtonText}>Sign In</Text>
+                                            )}
                                         </Animated.View>
                                     </TouchableOpacity>
                                 </>
@@ -422,20 +435,13 @@ export default function LoginScreen({ navigation }) {
                                         onPress={isOtpSent ? handleVerifyOtp : handleSendOtp}
                                         onPressIn={() => animateButton(0.95)}
                                         onPressOut={() => animateButton(1)}
-                                        activeOpacity={1}
-                                        style={{ marginBottom: 24, marginTop: 16 }}
+                                        activeOpacity={0.8}
+                                        style={[styles.loginButton, { marginTop: 16 }]}
                                     >
-                                        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                                            <LinearGradient
-                                                colors={['#C026D3', '#701A75']}
-                                                style={styles.loginButtonGradient}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 0 }}
-                                            >
-                                                <Text style={styles.loginButtonText}>
-                                                    {isOtpSent ? 'Verify OTP' : 'Send OTP'}
-                                                </Text>
-                                            </LinearGradient>
+                                        <Animated.View style={[styles.loginButtonContent, { transform: [{ scale: buttonScale }] }]}>
+                                            <Text style={styles.loginButtonText}>
+                                                {isOtpSent ? 'Verify OTP' : 'Send OTP'}
+                                            </Text>
                                         </Animated.View>
                                     </TouchableOpacity>
                                 </>
@@ -523,29 +529,32 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     welcomeText: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1F2937',
+        fontSize: 30,
+        fontWeight: '900',
+        color: '#0f172a',
         marginBottom: 8,
+        letterSpacing: -0.5,
     },
     subtitleText: {
         fontSize: 16,
-        color: '#6B7280',
-        marginBottom: 24,
+        color: '#64748b',
+        marginBottom: 28,
+        lineHeight: 24,
+        fontWeight: '500',
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
-        borderRadius: 12,
+        backgroundColor: '#f8fafc',
+        borderRadius: 16,
         marginBottom: 16,
         paddingHorizontal: 16,
-        height: 56,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        height: 60,
+        borderWidth: 1.5,
+        borderColor: '#f1f5f9',
     },
     inputIcon: {
-        marginRight: 12,
+        marginRight: 14,
     },
     input: {
         flex: 1,
@@ -566,17 +575,20 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         borderRadius: 12,
-        overflow: 'hidden',
         marginBottom: 24,
+        overflow: 'hidden',
+        backgroundColor: '#4B184C', // Simple Theme Purple
     },
-    loginButtonGradient: {
+    loginButtonContent: {
         paddingVertical: 16,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     loginButtonText: {
         color: '#ffffff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
     dividerContainer: {
         flexDirection: 'row',

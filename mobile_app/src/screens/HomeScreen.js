@@ -9,7 +9,7 @@ import {
     SafeAreaView,
     StatusBar
 } from 'react-native';
-import { Star, ArrowRight, Quote, Users, MapPin, Zap, Award } from 'lucide-react-native';
+import { Star, ArrowRight, Quote, Users, MapPin, Zap, Award, Bell } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import { Animated } from 'react-native';
@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function HomeScreen({ navigation }) {
     const [topVenues, setTopVenues] = useState([]);
     const [loyaltyData, setLoyaltyData] = useState({ points: 2450, tier: 'Gold' });
+    const [user, setUser] = useState(null);
     const scrollY = React.useRef(new Animated.Value(0)).current;
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
     const slideAnim = React.useRef(new Animated.Value(30)).current;
@@ -56,10 +57,11 @@ export default function HomeScreen({ navigation }) {
         try {
             const userData = await AsyncStorage.getItem('user');
             if (userData) {
-                const user = JSON.parse(userData);
+                const parsedUser = JSON.parse(userData);
+                setUser(parsedUser);
                 setLoyaltyData({
-                    points: user.points || 2450,
-                    tier: user.tier || 'Silver'
+                    points: parsedUser.points || 2450,
+                    tier: parsedUser.tier || 'Silver'
                 });
             }
         } catch (e) { console.log(e); }
@@ -71,8 +73,24 @@ export default function HomeScreen({ navigation }) {
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.logoSmall}>🐦</Text>
-                    <Text style={styles.headerTitle}>Trills</Text>
+                    <View style={styles.headerLeft}>
+                        <Image
+                            source={require('../../assets/icon.png')}
+                            style={styles.logoHeader}
+                            resizeMode="contain"
+                        />
+                        <View style={styles.welcomeContainer}>
+                            <Text style={styles.greeting}>Hi,</Text>
+                            <Text style={styles.userNameHeader}>{user?.name?.split(' ')[0] || 'Sreeni'}</Text>
+                        </View>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.notifBtn}
+                        onPress={() => navigation.navigate('Notifications')}
+                    >
+                        <Bell size={24} color="#4B184C" />
+                        <View style={styles.notifBadge} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Hero Section */}
@@ -279,9 +297,32 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 24,
         paddingTop: 16,
-        gap: 10,
+    },
+    logoHeader: {
+        width: 32,
+        height: 32,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    welcomeContainer: {
+        justifyContent: 'center',
+    },
+    greeting: {
+        fontSize: 12,
+        color: '#64748b',
+        fontWeight: '500',
+    },
+    userNameHeader: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1e293b',
+        marginTop: -2,
     },
     logoSmall: {
         fontSize: 28,
@@ -292,20 +333,39 @@ const styles = StyleSheet.create({
         color: '#1a1a1a',
         letterSpacing: -0.5,
     },
+    notifBtn: {
+        position: 'relative',
+        padding: 8,
+    },
+    notifBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#C026D3',
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
     hero: {
         padding: 24,
-        paddingTop: 24,
+        paddingTop: 32,
+        paddingBottom: 20,
     },
     heroTitle: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#1a1a1a',
-        lineHeight: 40,
+        fontSize: 34,
+        fontWeight: '900',
+        color: '#0f172a', // Deeper slate for better contrast
+        lineHeight: 42,
+        letterSpacing: -1,
     },
     heroSubtitle: {
         fontSize: 16,
         color: '#64748b',
-        marginTop: 12,
+        marginTop: 14,
+        lineHeight: 24,
+        fontWeight: '500',
     },
     section: {
         marginTop: 32,
@@ -318,10 +378,11 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     sectionTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#1a1a1a',
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#0f172a',
         marginBottom: 20,
+        letterSpacing: -0.7,
     },
     viewAll: {
         color: '#4B184C',
@@ -360,10 +421,11 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     cardTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1a1a1a',
-        marginBottom: 12,
+        fontSize: 19,
+        fontWeight: '800',
+        color: '#0f172a',
+        marginBottom: 14,
+        letterSpacing: -0.5,
     },
     cardAction: {
         backgroundColor: '#4B184C',
@@ -453,17 +515,21 @@ const styles = StyleSheet.create({
     },
     statBox: {
         alignItems: 'center',
-        padding: 10,
+        padding: 12,
     },
     statNum: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginTop: 4,
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#0f172a',
+        marginTop: 6,
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#64748b',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 2,
     },
     testimonialCard: {
         width: 280,
@@ -541,6 +607,17 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
         textTransform: 'uppercase',
+    },
+    loginButtonText: {
+        color: '#ffffff',
+        fontSize: 18,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+    loyaltySub: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 12,
+        marginTop: 2,
     },
     loyaltyTitle: {
         color: '#fff',

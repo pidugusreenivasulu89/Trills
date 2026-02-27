@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
-import { ArrowLeft, MessageCircle, UserPlus, MapPin, Link as LinkIcon, Grid, List, Check } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, UserPlus, MapPin, Link as LinkIcon, Grid, List, Check, Lock } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -183,8 +183,8 @@ export default function UserProfileScreen({ navigation, route }) {
                         <TouchableOpacity
                             style={[styles.actionBtn, styles.secondaryBtn]}
                             onPress={() => {
-                                console.log('Navigating to Inbox for messaging:', user);
-                                navigation.navigate('MainTabs', { screen: 'Inbox' });
+                                console.log('Navigating to Notifications for updates:', user);
+                                navigation.navigate('Notifications');
                             }}
                         >
                             <MessageCircle size={20} color="#4B184C" />
@@ -205,11 +205,33 @@ export default function UserProfileScreen({ navigation, route }) {
                     </View>
 
                     <View style={styles.grid}>
-                        {posts.map((img, index) => (
-                            <TouchableOpacity key={index} style={styles.gridItem}>
-                                <Image source={{ uri: img }} style={styles.gridImage} />
-                            </TouchableOpacity>
-                        ))}
+                        {(isConnected && connectionStatus === 'accepted') ? (
+                            posts.map((img, index) => (
+                                <TouchableOpacity key={index} style={styles.gridItem}>
+                                    <Image source={{ uri: img }} style={styles.gridImage} />
+                                </TouchableOpacity>
+                            ))
+                        ) : (
+                            <View style={styles.privateOverlay}>
+                                <View style={styles.blurContainer}>
+                                    <View style={styles.lockIconContainer}>
+                                        <Lock size={40} color="#94a3b8" />
+                                    </View>
+                                    <Text style={styles.privateTitle}>Private Profile</Text>
+                                    <Text style={styles.privateSubtitle}>
+                                        Connect with {user || 'this user'} to see their posts and professional updates.
+                                    </Text>
+                                    {(!isConnected || connectionStatus !== 'pending') && (
+                                        <TouchableOpacity
+                                            style={styles.connectNowBtn}
+                                            onPress={handleConnect}
+                                        >
+                                            <Text style={styles.connectNowText}>Connect to View</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        )}
                     </View>
                 </View>
 
@@ -376,5 +398,49 @@ const styles = StyleSheet.create({
     gridImage: {
         width: '100%',
         height: '100%',
+    },
+    privateOverlay: {
+        width: '100%',
+        paddingVertical: 60,
+        backgroundColor: '#f8fafc',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    blurContainer: {
+        alignItems: 'center',
+        paddingHorizontal: 40,
+    },
+    lockIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#f1f5f9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    privateTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1e293b',
+        marginBottom: 10,
+    },
+    privateSubtitle: {
+        fontSize: 14,
+        color: '#64748b',
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    connectNowBtn: {
+        backgroundColor: '#4B184C',
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 12,
+    },
+    connectNowText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

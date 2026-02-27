@@ -56,52 +56,15 @@ export default function WelcomeScreen({ navigation }) {
     const scrollX = useRef(new Animated.Value(0)).current;
     const flatListRef = useRef(null);
 
-    // Concept Animations
-    const birdAnim = useRef({
-        x: new Animated.Value(-100),
-        y: new Animated.Value(150),
-        scale: new Animated.Value(1),
-    }).current;
-    const heartPulse = useRef(new Animated.Value(1)).current;
     const logoFade = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        // Sequenced flight animation
-        Animated.sequence([
-            // 1. Logo fades in first
-            Animated.timing(logoFade, {
-                toValue: 1,
-                duration: 1000,
-                useNativeDriver: true,
-            }),
-            // 2. Bird flies in and lands
-            Animated.parallel([
-                Animated.timing(birdAnim.x, {
-                    toValue: width / 2 - 90, // Calibrated landing position for 'T'
-                    duration: 2000,
-                    easing: Easing.out(Easing.exp),
-                    useNativeDriver: true,
-                }),
-                Animated.timing(birdAnim.y, {
-                    toValue: 20, // Sit better on the text baseline
-                    duration: 2000,
-                    easing: Easing.out(Easing.exp),
-                    useNativeDriver: true,
-                }),
-                Animated.sequence([
-                    Animated.timing(birdAnim.scale, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
-                    Animated.timing(birdAnim.scale, { toValue: 1, duration: 1000, useNativeDriver: true }),
-                ])
-            ]),
-            // 3. Heart Pulse after landing
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(heartPulse, { toValue: 1.3, duration: 500, useNativeDriver: true }),
-                    Animated.timing(heartPulse, { toValue: 1, duration: 500, useNativeDriver: true }),
-                ]),
-                { iterations: 5 }
-            )
-        ]).start();
+        // Simple logo fade in without complex flight
+        Animated.timing(logoFade, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+        }).start();
     }, []);
 
     const onViewableItemsChanged = useRef(({ viewableItems }) => {
@@ -186,29 +149,13 @@ export default function WelcomeScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-            {/* Animated Brand Intro */}
             <View style={styles.brandIntro}>
-                <Animated.View style={[styles.birdContainer, {
-                    transform: [
-                        { translateX: birdAnim.x },
-                        { translateY: birdAnim.y },
-                        { scale: birdAnim.scale }
-                    ]
-                }]}>
-                    <View style={styles.birdWithLove}>
-                        <Animated.View style={{ transform: [{ scale: heartPulse }] }}>
-                            <Heart size={14} color="#EF4444" fill="#EF4444" style={styles.heartIcon} />
-                        </Animated.View>
-                        <Image
-                            source={require('../../assets/icon.png')}
-                            style={styles.logoInApp}
-                            resizeMode="contain"
-                        />
-                    </View>
-                </Animated.View>
-
                 <Animated.View style={[styles.logoContainer, { opacity: logoFade }]}>
-                    <Text style={styles.logoText}>Trills</Text>
+                    <Image
+                        source={require('../../assets/icon.png')}
+                        style={styles.logoInApp}
+                        resizeMode="contain"
+                    />
                 </Animated.View>
             </View>
 
@@ -293,17 +240,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 20,
     },
-    birdContainer: {
-        position: 'absolute',
-        zIndex: 10,
-    },
-    birdWithLove: {
-        alignItems: 'center',
-    },
-    heartIcon: {
-        marginBottom: -5,
-        zIndex: 2,
-    },
     logoInApp: {
         width: 60,
         height: 60,
@@ -335,17 +271,19 @@ const styles = StyleSheet.create({
         marginBottom: 48,
     },
     title: {
-        fontSize: 30,
-        fontWeight: '800',
-        color: '#1e293b',
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#0f172a',
         marginBottom: 16,
         textAlign: 'center',
+        letterSpacing: -1,
     },
     description: {
         fontSize: 17,
-        color: '#64748b', // Slate gray
+        color: '#64748b',
         textAlign: 'center',
         lineHeight: 26,
+        fontWeight: '500',
     },
     bottomContainer: {
         paddingHorizontal: 40,
@@ -378,6 +316,7 @@ const styles = StyleSheet.create({
     nextButtonText: {
         color: '#ffffff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
 });

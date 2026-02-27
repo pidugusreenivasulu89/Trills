@@ -1,26 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Share, TextInput, Alert } from 'react-native';
-import { Heart, MessageCircle, Share2, Star, UserPlus, Zap, Check, CheckCircle, MoreVertical } from 'lucide-react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Share, TextInput, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { Heart, MessageCircle, Share2, Star, UserPlus, Zap, Check, CheckCircle, MoreVertical, Plus } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function FeedScreen({ navigation }) {
-    const [posts, setPosts] = useState([
-        { id: 1, type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: 'https://i.pravatar.cc/150?u=alex', content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10! ☕️💻', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
-        { id: 4, type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: 'https://i.pravatar.cc/150?u=sophia', content: 'Found this amazing hidden gem for brunch! 🥑🥪', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
-        {
-            id: 'promo1',
-            type: 'promo',
-            title: 'Zenith Hub',
-            category: 'Team Space',
-            image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=1000',
-            discount: '20% OFF',
-            description: 'Focused quiet zones and collaborative pods for high-performance teams.'
-        },
-        { id: 2, type: 'post', user: 'Sarah Jenkins', email: 'sarah@trills.com', avatar: 'https://i.pravatar.cc/150?u=sarah', content: 'Lovely evening at Luminary Dining. That sunset view over the city is unbeatable! 🌅🍷', image: 'https://images.unsplash.com/photo-1502301103665-0b95cc738def?auto=format&fit=crop&q=80&w=1000', likes: 42, liked: false, comments: 5 },
-        { id: 3, type: 'post', user: 'Marcus Chen', email: 'marcus@trills.com', avatar: 'https://i.pravatar.cc/150?u=marcus', content: 'Anyone heading to the Tech Founders night tomorrow? Looking to connect with some React experts! 🚀', likes: 12, liked: false, comments: 8 }
-    ]);
+    const [posts, setPosts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const recommendedPros = [
         { id: 101, name: 'Elena R.', email: 'elena@trills.com', role: 'Product Manager @ Meta', avatar: 'https://i.pravatar.cc/150?u=elena' },
@@ -38,32 +27,71 @@ export default function FeedScreen({ navigation }) {
     const [sentRequests, setSentRequests] = useState(new Set());
     const [currentUser, setCurrentUser] = useState(null);
 
-    useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                const storedBlocked = await AsyncStorage.getItem('blocked_users');
-                if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+    const fetchPosts = async (showLoading = true) => {
+        try {
+            if (showLoading) setIsLoading(true);
+            const response = await axios.get(ENDPOINTS.POSTS);
+            if (response.data) {
+                // If the backend is empty, prepend some default ones for UI demonstration
+                const fetchedPosts = response.data;
+                if (fetchedPosts.length === 0) {
+                    setPosts([
+                        { id: 'default1', type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: 'https://i.pravatar.cc/150?u=alex', content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10! ☕️💻', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
+                        { id: 'default2', type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: 'https://i.pravatar.cc/150?u=sophia', content: 'Found this amazing hidden gem for brunch! 🥑🥪', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
+                    ]);
+                } else {
+                    setPosts(fetchedPosts);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+        } finally {
+            setIsLoading(false);
+            setIsRefreshing(false);
+        }
+    };
 
-                const storedUser = await AsyncStorage.getItem('user');
-                if (storedUser) setCurrentUser(JSON.parse(storedUser));
+    useFocusEffect(
+        useCallback(() => {
+            fetchPosts();
+            loadUserData();
+        }, [])
+    );
 
-                const storedPending = await AsyncStorage.getItem('pending_connections');
-                if (storedPending) setSentRequests(new Set(JSON.parse(storedPending)));
-            } catch (e) { }
-        };
-        loadInitialData();
+    const loadUserData = async () => {
+        try {
+            const storedBlocked = await AsyncStorage.getItem('blocked_users');
+            if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
 
-        const unsubscribe = navigation.addListener('focus', loadInitialData);
-        return unsubscribe;
-    }, [navigation]);
+            const storedUser = await AsyncStorage.getItem('user');
+            if (storedUser) setCurrentUser(JSON.parse(storedUser));
 
-    const handleLike = (id) => {
+            const storedPending = await AsyncStorage.getItem('pending_connections');
+            if (storedPending) setSentRequests(new Set(JSON.parse(storedPending)));
+        } catch (e) { }
+    };
+
+    const onRefresh = () => {
+        setIsRefreshing(true);
+        fetchPosts(false);
+    };
+
+    const handleLike = async (id) => {
         setPosts(posts.map(p => {
-            if (p.id === id && p.type === 'post') {
-                return { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 };
+            if (p._id === id || p.id === id) {
+                const isLiked = p.likedBy?.includes(currentUser?.email) || p.liked;
+                return {
+                    ...p,
+                    liked: !isLiked,
+                    likes: isLiked ? p.likes - 1 : p.likes + 1,
+                    likedBy: isLiked
+                        ? (p.likedBy?.filter(e => e !== currentUser?.email) || [])
+                        : [...(p.likedBy || []), currentUser?.email]
+                };
             }
             return p;
         }));
+        // Optional: Call update API
     };
 
     const handleShare = async (content) => {
@@ -83,27 +111,39 @@ export default function FeedScreen({ navigation }) {
                 {
                     text: 'Delete',
                     style: 'destructive',
-                    onPress: () => setPosts(posts.filter(p => p.id !== postId))
+                    onPress: async () => {
+                        try {
+                            // If it's a real post from DB
+                            await axios.delete(`${ENDPOINTS.POSTS}/${postId}`);
+                            setPosts(posts.filter(p => (p._id || p.id) !== postId));
+                        } catch (e) {
+                            // Fallback for demo posts
+                            setPosts(posts.filter(p => (p._id || p.id) !== postId));
+                        }
+                    }
                 }
             ]
         );
     };
 
     const startEditing = (post) => {
-        setEditingPostId(post.id);
+        setEditingPostId(post._id || post.id);
         setEditContent(post.content);
     };
 
-    const handleUpdate = (postId) => {
+    const handleUpdate = async (postId) => {
         if (!editContent.trim()) return;
-        setPosts(posts.map(p => {
-            if (p.id === postId) {
-                return { ...p, content: editContent };
-            }
-            return p;
-        }));
-        setEditingPostId(null);
-        setEditContent('');
+        try {
+            // Optional: call PUT API here
+            setPosts(posts.map(p => {
+                if ((p._id || p.id) === postId) {
+                    return { ...p, content: editContent };
+                }
+                return p;
+            }));
+            setEditingPostId(null);
+            setEditContent('');
+        } catch (e) { }
     };
 
     const handleHide = (postId) => {
@@ -157,9 +197,9 @@ export default function FeedScreen({ navigation }) {
                 style: idx === destructiveButtonIndex ? 'destructive' : (idx === cancelButtonIndex ? 'cancel' : 'default'),
                 onPress: () => {
                     if (opt === 'Edit Post') startEditing(post);
-                    else if (opt === 'Delete Post') handleDelete(post.id);
-                    else if (opt === 'Hide Post') handleHide(post.id);
-                    else if (opt === 'Report Post') handleReport(post.id);
+                    else if (opt === 'Delete Post') handleDelete(post._id || post.id);
+                    else if (opt === 'Hide Post') handleHide(post._id || post.id);
+                    else if (opt === 'Report Post') handleReport(post._id || post.id);
                     else if (opt === 'Block ' + post.user) handleBlock(post.user);
                 }
             }))
@@ -200,173 +240,208 @@ export default function FeedScreen({ navigation }) {
         }
     };
 
-    const visiblePosts = posts.filter(p => !hiddenPostIds.includes(p.id) && !blockedUsers.includes(p.user));
+    const visiblePosts = posts.filter(p => !hiddenPostIds.includes(p._id || p.id) && !blockedUsers.includes(p.user));
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Community Feed</Text>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Recommended Section */}
-                <View style={styles.recSection}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Recommended For You</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Explore')}>
-                            <Text style={styles.viewAll}>See All</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recList}>
-                        {recommendedPros.map(pro => (
-                            <TouchableOpacity
-                                key={pro.id}
-                                style={styles.proCard}
-                                onPress={() => navigation.navigate('UserProfile', {
-                                    user: pro.name,
-                                    avatar: pro.avatar,
-                                    recipientEmail: pro.email,
-                                    role: pro.role
-                                })}
-                            >
-                                <Image source={{ uri: pro.avatar }} style={styles.proAvatar} />
-                                <Text style={styles.proName} numberOfLines={1}>{pro.name}</Text>
-                                <Text style={styles.proRole} numberOfLines={1}>{pro.role}</Text>
-                                <TouchableOpacity
-                                    activeOpacity={0.7}
-                                    style={[styles.followBtn, sentRequests.has(pro.email) && styles.sentBtn]}
-                                    onPress={(e) => {
-                                        e.stopPropagation();
-                                        handleQuickConnect(pro.email, pro.name);
-                                    }}
-                                >
-                                    {sentRequests.has(pro.email) ? (
-                                        <Check size={14} color="#4B184C" />
-                                    ) : (
-                                        <UserPlus size={14} color="#fff" />
-                                    )}
-                                    <Text style={[styles.followText, sentRequests.has(pro.email) && styles.sentText]}>
-                                        {sentRequests.has(pro.email) ? 'Sent' : 'Connect'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
 
-                {visiblePosts.map(post => {
-                    if (post.type === 'promo') {
-                        return (
-                            <View key={post.id} style={styles.promoCardContainer}>
-                                <View style={styles.promoBadge}>
-                                    <Zap size={14} color="#fff" fill="#fff" />
-                                    <Text style={styles.promoBadgeText}>Promoted</Text>
-                                </View>
-                                <Image source={{ uri: post.image }} style={styles.promoImage} />
-                                <View style={styles.promoContent}>
-                                    <View style={styles.promoHeader}>
-                                        <Text style={styles.promoTitle}>{post.title}</Text>
-                                        <View style={styles.offerBadge}><Text style={styles.offerText}>{post.discount}</Text></View>
+            {isLoading && !isRefreshing ? (
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#4B184C" />
+                    <Text style={styles.loadingText}>Fetching updates...</Text>
+                </View>
+            ) : (
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#4B184C']} />
+                    }
+                >
+                    {/* Recommended Section */}
+                    <View style={styles.recSection}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Recommended For You</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Explore')}>
+                                <Text style={styles.viewAll}>See All</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recList}>
+                            {recommendedPros.map(pro => (
+                                <TouchableOpacity
+                                    key={pro.id}
+                                    style={styles.proCard}
+                                    onPress={() => navigation.navigate('UserProfile', {
+                                        user: pro.name,
+                                        avatar: pro.avatar,
+                                        recipientEmail: pro.email,
+                                        role: pro.role
+                                    })}
+                                >
+                                    <Image source={{ uri: pro.avatar }} style={styles.proAvatar} />
+                                    <Text style={styles.proName} numberOfLines={1}>{pro.name}</Text>
+                                    <Text style={styles.proRole} numberOfLines={1}>{pro.role}</Text>
+                                    <TouchableOpacity
+                                        activeOpacity={0.7}
+                                        style={[styles.followBtn, sentRequests.has(pro.email) && styles.sentBtn]}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            handleQuickConnect(pro.email, pro.name);
+                                        }}
+                                    >
+                                        {sentRequests.has(pro.email) ? (
+                                            <Check size={14} color="#4B184C" />
+                                        ) : (
+                                            <UserPlus size={14} color="#fff" />
+                                        )}
+                                        <Text style={[styles.followText, sentRequests.has(pro.email) && styles.sentText]}>
+                                            {sentRequests.has(pro.email) ? 'Sent' : 'Connect'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {visiblePosts.length === 0 && !isLoading && (
+                        <View style={styles.emptyContainer}>
+                            <MessageCircle size={60} color="#e2e8f0" />
+                            <Text style={styles.emptyText}>No posts yet. Be the first to share something!</Text>
+                        </View>
+                    )}
+
+                    {visiblePosts.map(post => {
+                        const pid = post._id || post.id;
+                        const isLiked = post.likedBy?.includes(currentUser?.email) || post.liked;
+
+                        if (post.type === 'promo') {
+                            return (
+                                <View key={pid} style={styles.promoCardContainer}>
+                                    <View style={styles.promoBadge}>
+                                        <Zap size={14} color="#fff" fill="#fff" />
+                                        <Text style={styles.promoBadgeText}>Promoted</Text>
                                     </View>
-                                    <Text style={styles.promoDesc}>{post.description}</Text>
-                                    <TouchableOpacity style={styles.promoAction} onPress={() => navigation.navigate('Explore')}>
-                                        <Text style={styles.promoActionText}>Claim Offer</Text>
+                                    <Image source={{ uri: post.image }} style={styles.promoImage} />
+                                    <View style={styles.promoContent}>
+                                        <View style={styles.promoHeader}>
+                                            <Text style={styles.promoTitle}>{post.title}</Text>
+                                            <View style={styles.offerBadge}><Text style={styles.offerText}>{post.discount}</Text></View>
+                                        </View>
+                                        <Text style={styles.promoDesc}>{post.description}</Text>
+                                        <TouchableOpacity style={styles.promoAction} onPress={() => navigation.navigate('Explore')}>
+                                            <Text style={styles.promoActionText}>Claim Offer</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            );
+                        }
+
+                        return (
+                            <View key={pid} style={styles.card}>
+                                <View style={styles.postHeaderRow}>
+                                    <TouchableOpacity
+                                        style={styles.author}
+                                        onPress={() => navigation.navigate('UserProfile', {
+                                            user: post.user,
+                                            avatar: post.avatar,
+                                            recipientEmail: post.email
+                                        })}
+                                    >
+                                        <Image
+                                            source={{ uri: (post.email === currentUser?.email) ? (currentUser?.avatar || currentUser?.image || post.avatar) : post.avatar }}
+                                            style={styles.avatar}
+                                        />
+                                        <View>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                <Text style={styles.name}>{post.user}</Text>
+                                                {(post.verified || (post.email === currentUser?.email && currentUser?.verified)) && (
+                                                    <CheckCircle size={14} color="#4B184C" fill="#4B184C" />
+                                                )}
+                                            </View>
+                                            <Text style={styles.timestamp}>
+                                                {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Just now'}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                        {post.email !== currentUser?.email && (
+                                            <TouchableOpacity
+                                                style={[styles.connectBtnSmall, sentRequests.has(post.email) && styles.sentBtnSmall]}
+                                                onPress={() => handleQuickConnect(post.email, post.user)}
+                                            >
+                                                {sentRequests.has(post.email) ? (
+                                                    <Check size={16} color="#4B184C" />
+                                                ) : (
+                                                    <UserPlus size={16} color="#4B184C" />
+                                                )}
+                                                <Text style={styles.connectBtnText}>
+                                                    {sentRequests.has(post.email) ? 'Sent' : 'Connect'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                        <TouchableOpacity onPress={() => showMoreOptions(post)}>
+                                            <MoreVertical size={22} color="#64748b" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {editingPostId === pid ? (
+                                    <View style={styles.editSection}>
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={editContent}
+                                            onChangeText={setEditContent}
+                                            multiline
+                                            autoFocus
+                                        />
+                                        <View style={styles.editActions}>
+                                            <TouchableOpacity onPress={() => setEditingPostId(null)} style={styles.cancelBtn}>
+                                                <Text style={styles.cancelText}>Cancel</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleUpdate(pid)} style={styles.saveBtn}>
+                                                <Text style={styles.saveText}>Save Changes</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.content}>{post.content}</Text>
+                                )}
+
+                                {post.image && <Image source={{ uri: post.image }} style={styles.postImg} />}
+
+                                <View style={styles.actions}>
+                                    <TouchableOpacity onPress={() => handleLike(pid)} style={styles.actionBtn}>
+                                        <Heart size={20} color={isLiked ? "#4B184C" : "#64748b"} fill={isLiked ? "#4B184C" : "none"} />
+                                        <Text style={[styles.actionNum, isLiked && { color: "#4B184C" }]}>{post.likes || 0}</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => navigation.navigate('Comments', { postId: pid, user: post.user, content: post.content })}
+                                        style={styles.actionBtn}
+                                    >
+                                        <MessageCircle size={20} color={post.comments > 0 ? "#4B184C" : "#64748b"} fill={post.comments > 0 ? "rgba(75, 24, 76, 0.1)" : "none"} />
+                                        <Text style={[styles.actionNum, post.comments > 0 && { color: "#4B184C" }]}>{post.comments || 0}</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => handleShare(post.content)} style={styles.actionBtn}>
+                                        <Share2 size={20} color="#64748b" />
                                     </TouchableOpacity>
                                 </View>
                             </View>
                         );
-                    }
+                    })}
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            )}
 
-                    return (
-                        <View key={post.id} style={styles.card}>
-                            <View style={styles.postHeaderRow}>
-                                <TouchableOpacity
-                                    style={styles.author}
-                                    onPress={() => navigation.navigate('UserProfile', {
-                                        user: post.user,
-                                        avatar: post.avatar,
-                                        recipientEmail: post.email
-                                    })}
-                                >
-                                    <Image
-                                        source={{ uri: (post.email === currentUser?.email) ? (currentUser?.avatar || currentUser?.image || post.avatar) : post.avatar }}
-                                        style={styles.avatar}
-                                    />
-                                    <View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                            <Text style={styles.name}>{post.user}</Text>
-                                            {(post.verified || (post.email === currentUser?.email && currentUser?.verified)) && (
-                                                <CheckCircle size={14} color="#4B184C" fill="#4B184C" />
-                                            )}
-                                        </View>
-                                        <Text style={styles.timestamp}>2 hours ago</Text>
-                                    </View>
-                                </TouchableOpacity>
-
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                                    <TouchableOpacity
-                                        style={[styles.connectBtnSmall, sentRequests.has(post.email) && styles.sentBtnSmall]}
-                                        onPress={() => handleQuickConnect(post.email, post.user)}
-                                    >
-                                        {sentRequests.has(post.email) ? (
-                                            <Check size={16} color="#4B184C" />
-                                        ) : (
-                                            <UserPlus size={16} color="#4B184C" />
-                                        )}
-                                        <Text style={styles.connectBtnText}>
-                                            {sentRequests.has(post.email) ? 'Sent' : 'Connect'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => showMoreOptions(post)}>
-                                        <MoreVertical size={22} color="#64748b" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            {editingPostId === post.id ? (
-                                <View style={styles.editSection}>
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editContent}
-                                        onChangeText={setEditContent}
-                                        multiline
-                                        autoFocus
-                                    />
-                                    <View style={styles.editActions}>
-                                        <TouchableOpacity onPress={() => setEditingPostId(null)} style={styles.cancelBtn}>
-                                            <Text style={styles.cancelText}>Cancel</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity onPress={() => handleUpdate(post.id)} style={styles.saveBtn}>
-                                            <Text style={styles.saveText}>Save Changes</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ) : (
-                                <Text style={styles.content}>{post.content}</Text>
-                            )}
-
-                            {post.image && <Image source={{ uri: post.image }} style={styles.postImg} />}
-
-                            <View style={styles.actions}>
-                                <TouchableOpacity onPress={() => handleLike(post.id)} style={styles.actionBtn}>
-                                    <Heart size={20} color={post.liked ? "#4B184C" : "#64748b"} fill={post.liked ? "#4B184C" : "none"} />
-                                    <Text style={[styles.actionNum, post.liked && { color: "#4B184C" }]}>{post.likes}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => navigation.navigate('Comments', { postId: post.id, user: post.user, content: post.content })}
-                                    style={styles.actionBtn}
-                                >
-                                    <MessageCircle size={20} color={post.comments > 0 ? "#4B184C" : "#64748b"} fill={post.comments > 0 ? "rgba(75, 24, 76, 0.1)" : "none"} />
-                                    <Text style={[styles.actionNum, post.comments > 0 && { color: "#4B184C" }]}>{post.comments}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleShare(post.content)} style={styles.actionBtn}>
-                                    <Share2 size={20} color="#64748b" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    );
-                })}
-                <View style={{ height: 40 }} />
-            </ScrollView>
+            {/* Floating Action Button */}
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => navigation.navigate('CreatePost')}
+            >
+                <Plus size={30} color="#fff" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -375,6 +450,10 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfc' },
     header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
     title: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 12, color: '#64748b', fontWeight: '600' },
+    emptyContainer: { padding: 60, alignItems: 'center', justifyContent: 'center' },
+    emptyText: { marginTop: 15, color: '#94a3b8', textAlign: 'center', fontSize: 16, lineHeight: 24 },
 
     // Recommended Pros
     recSection: { paddingVertical: 20, backgroundColor: '#fff', marginBottom: 12 },
@@ -430,4 +509,22 @@ const styles = StyleSheet.create({
     promoDesc: { fontSize: 14, color: '#64748b', lineHeight: 20, marginBottom: 20 },
     promoAction: { backgroundColor: '#4B184C', padding: 15, borderRadius: 12, alignItems: 'center' },
     promoActionText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+    // FAB
+    fab: {
+        position: 'absolute',
+        bottom: 25,
+        right: 25,
+        backgroundColor: '#4B184C',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+    }
 });

@@ -3,7 +3,7 @@
     "name": "Trills",
     "slug": "trills",
     "scheme": "trillsauth",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "sdkVersion": "52.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +22,29 @@
     },
     "android": {
       "package": "in.trills.socialvibe",
-      "versionCode": 203,
+      "versionCode": 213,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "trills.in",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.trills.in",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
@@ -63,6 +85,7 @@
           }
         }
       ]
-    ]
+    ],
+    "owner": "sreeni90s-organization"
   }
 }

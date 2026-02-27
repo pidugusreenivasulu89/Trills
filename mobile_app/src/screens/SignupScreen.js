@@ -323,22 +323,15 @@ export default function SignupScreen({ navigation }) {
                                 onPress={handleSignup}
                                 onPressIn={() => animateButton(0.95)}
                                 onPressOut={() => animateButton(1)}
-                                activeOpacity={1}
-                                style={{ marginBottom: 20 }}
+                                activeOpacity={0.8}
+                                style={styles.signupButton}
                             >
-                                <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-                                    <LinearGradient
-                                        colors={['#C026D3', '#701A75']}
-                                        style={styles.signupButtonGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                    >
-                                        {isLoading ? (
-                                            <ActivityIndicator color="#fff" />
-                                        ) : (
-                                            <Text style={styles.signupButtonText}>Create Account</Text>
-                                        )}
-                                    </LinearGradient>
+                                <Animated.View style={[styles.signupButtonContent, { transform: [{ scale: buttonScale }] }]}>
+                                    {isLoading ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.signupButtonText}>Create Account</Text>
+                                    )}
                                 </Animated.View>
                             </TouchableOpacity>
 
@@ -443,14 +436,16 @@ const styles = StyleSheet.create({
         fontSize: 48,
     },
     appName: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: 30,
+        fontWeight: '900',
         color: '#ffffff',
-        marginBottom: 4,
+        marginBottom: 8,
+        letterSpacing: -0.5,
     },
     tagline: {
-        fontSize: 14,
+        fontSize: 16,
         color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '500',
     },
     formContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -461,24 +456,24 @@ const styles = StyleSheet.create({
             width: 0,
             height: 10,
         },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
+        shadowOpacity: 0.08,
+        shadowRadius: 25,
         elevation: 10,
-        marginBottom: 20,
+        marginBottom: 24,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F3F4F6',
-        borderRadius: 12,
+        backgroundColor: '#f8fafc',
+        borderRadius: 16,
         marginBottom: 16,
         paddingHorizontal: 16,
-        height: 56,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        height: 60,
+        borderWidth: 1.5,
+        borderColor: '#f1f5f9',
     },
     inputIcon: {
-        marginRight: 12,
+        marginRight: 14,
     },
     input: {
         flex: 1,
@@ -520,17 +515,20 @@ const styles = StyleSheet.create({
     },
     signupButton: {
         borderRadius: 12,
-        overflow: 'hidden',
         marginBottom: 20,
+        overflow: 'hidden',
+        backgroundColor: '#4B184C', // Simple Theme Purple
     },
-    signupButtonGradient: {
+    signupButtonContent: {
         paddingVertical: 16,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     signupButtonText: {
         color: '#ffffff',
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
     dividerContainer: {
         flexDirection: 'row',

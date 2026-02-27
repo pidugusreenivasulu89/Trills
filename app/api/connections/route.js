@@ -26,75 +26,53 @@ export async function POST(request) {
     try {
         await dbConnect();
         const body = await request.json();
-        requesterEmail = body.requesterEmail;
+        requesterEmail = body.requesterEmail?.toLowerCase();
         recipientId = body.recipientId;
-        recipientEmail = body.recipientEmail;
+        recipientEmail = body.recipientEmail?.toLowerCase();
 
         if (!requesterEmail || (!recipientId && !recipientEmail)) {
-            return NextResponse.json({ error: 'Missing fields' }, { status: 400, headers: corsHeaders });
+            return NextResponse.json({ error: 'Missing requester or recipient details' }, { status: 400, headers: corsHeaders });
         }
 
-        const requester = await User.findOne({ email: requesterEmail.toLowerCase() });
+        const requester = await User.findOne({ email: requesterEmail });
         let recipient = null;
         if (recipientId) {
             recipient = await User.findById(recipientId);
         } else if (recipientEmail) {
-            recipient = await User.findOne({ email: recipientEmail.toLowerCase() });
+            recipient = await User.findOne({ email: recipientEmail });
             if (recipient) recipientId = recipient._id;
         }
 
-        console.log('Connection attempt details:', {
-            requesterEmail,
-            recipientId,
-            requesterFound: !!requester,
-            recipientFound: !!recipient
-        });
-
         if (!requester || !recipient) {
             console.warn('Requester or Recipient not found in DB. Requester:', requesterEmail, 'Recipient:', recipientEmail);
-            // Fallback: Create a notification for the recipientEmail even if they aren't a User yet
-            try {
-                // To recipient
-                await Notification.create({
-                    recipientEmail: recipientEmail?.toLowerCase() || 'demo@trills.com',
-                    senderEmail: requesterEmail?.toLowerCase(),
-                    type: 'friend_request',
-                    userName: requester?.name || 'New User',
-                    content: `sent you a connection request.`,
-                    timestamp: new Date(),
-                    read: false
-                });
-                // To sender
-                await Notification.create({
-                    recipientEmail: requesterEmail?.toLowerCase(),
-                    type: 'friend_request_sent',
-                    userName: recipientEmail || 'User',
-                    content: `You sent a connection request to ${recipientEmail || 'User'}.`,
-                    timestamp: new Date(),
-                    read: true
-                });
-            } catch (e) {
-                console.error('Failed to create fallback notifications:', e.message);
-            }
-            incrementSimulatedCount(requesterEmail || 'demo@trills.com');
-            return NextResponse.json({ success: true, message: 'Connection request sent (Mock Mode)' }, { headers: corsHeaders });
+            return NextResponse.json({ error: 'One or both users not found' }, { status: 404, headers: corsHeaders });
         }
 
-        // Check if already connected or requested
+        if (requester._id.toString() === recipient._id.toString()) {
+            return NextResponse.json({ error: 'You cannot connect with yourself' }, { status: 400, headers: corsHeaders });
+        }
+
+        // Check if already connected or requested (bidirectional)
         const existing = await Connection.findOne({
-            requester: requester._id,
-            recipient: recipient._id
+            $or: [
+                { requester: requester._id, recipient: recipient._id },
+                { requester: recipient._id, recipient: requester._id }
+            ]
         });
 
         if (existing) {
-            console.log('Connection already exists between', requester._id, 'and', recipientId);
-            return NextResponse.json({ message: 'Request already sent or connected', status: existing.status }, { headers: corsHeaders });
+            console.log('Connection already exists or pending between', requester._id, 'and', recipient._id);
+            return NextResponse.json({
+                success: false,
+                message: 'A connection or request already exists between these users',
+                status: existing.status
+            }, { status: 409, headers: corsHeaders });
         }
 
         console.log('Creating new connection entry...');
-        await Connection.create({
+        const newConnection = await Connection.create({
             requester: requester._id,
-            recipient: recipientId,
+            recipient: recipient._id,
             status: 'pending'
         });
 
@@ -111,36 +89,28 @@ export async function POST(request) {
             read: false
         });
 
-        // Create Notification for the sender (confirmation)
+        // Create Notification for the sender (confirmation/record)
         await Notification.create({
             recipientEmail: requester.email,
+            senderEmail: recipient.email,
             type: 'friend_request_sent',
             userName: recipient.name,
             content: `You sent a connection request to ${recipient.name}.`,
             avatar: recipient.image,
+            verified: recipient.verified,
             timestamp: new Date(),
-            read: true
+            read: true // Read by default for the sender
         });
 
-        incrementSimulatedCount(requesterEmail);
-        return NextResponse.json({ success: true, message: 'Connection request sent' }, { headers: corsHeaders });
+        return NextResponse.json({
+            success: true,
+            message: 'Connection request sent',
+            connection: newConnection
+        }, { headers: corsHeaders });
+
     } catch (error) {
-        console.warn('DB Connection failed in POST /api/connections:', error.message);
-        if (requesterEmail) {
-            incrementSimulatedCount(requesterEmail);
-            // Create a local notification for the sender even on error
-            try {
-                await Notification.create({
-                    recipientEmail: requesterEmail.toLowerCase(),
-                    type: 'friend_request_sent',
-                    userName: recipientEmail || 'User',
-                    content: `You sent a connection request to ${recipientEmail || 'User'}.`,
-                    timestamp: new Date(),
-                    read: true
-                });
-            } catch (e) { }
-        }
-        return NextResponse.json({ success: true, message: 'Connection request sent (Demo Fallback)' }, { headers: corsHeaders });
+        console.error('CRITICAL: Connection POST Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers: corsHeaders });
     }
 }
 

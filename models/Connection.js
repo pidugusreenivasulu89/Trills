@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const ConnectionSchema = new mongoose.Schema({
     requester: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'accepted' }, // Auto-accept for now as per "Trills" vibe
+    status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }, // Default to pending for LinkedIn-style requests
     createdAt: { type: Date, default: Date.now }
 });
 

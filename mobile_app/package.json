@@ -44,7 +44,7 @@
     "write-file-atomic": "^7.0.0"
   },
   "engines": {
-    "node": ">=20.19.4"
+    "node": ">=20"
   },
   "private": true
 }

@@ -14,7 +14,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EAS_BUILD_NODE_VERSION": "20.19.4"
+        "EAS_BUILD_NODE_VERSION": "20"
       }
     }
   },

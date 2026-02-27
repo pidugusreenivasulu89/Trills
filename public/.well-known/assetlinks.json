@@ -1,0 +1,16 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "in.trills.socialvibe",
+            "sha256_cert_fingerprints": [
+                "45:21:99:DC:7F:5E:C5:7D:A8:90:4E:A2:3B:19:34:B3:00:A9:BD:EC:27:33:C2:11:A4:E8:4F:A6:2C:5A:4E:B7",
+                "02:C8:FF:E4:43:BB:10:E8:52:1A:2C:87:D9:C7:E7:97:02:E1:EB:09:1A:38:F7:20:7D:07:FA:23:6F:E1:AF:C2",
+                "BD:4D:AA:CD:73:1F:0C:C0:63:53:69:75:5C:E0:DA:1C:99:6D:71:4E:43:13:F4:38:AB:F7:08:A8:46:61:41:96"
+            ]
+        }
+    }
+]
