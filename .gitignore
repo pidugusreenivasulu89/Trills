@@ -23,15 +23,25 @@
 
 # expo
 /mobile_app/.expo/
+/mobile_app/.gradle-home/
 /mobile_app/dist/
+/mobile_app/dist-android/
+/mobile_app/dist-web/
 /mobile_app/android/
 /mobile_app/ios/
 
 # misc
 .DS_Store
+.idea/
 *.pem
 *.jks
 *.keystore
+*.log
+*.tmp
+cert_info*.txt
+cert_*_info.txt
+trills_bak_info.txt
+app.json.*
 
 # debug
 npm-debug.log*

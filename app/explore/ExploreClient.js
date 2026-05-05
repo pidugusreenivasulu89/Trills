@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, Star, MapPin, Globe, Users, Clock, CheckCircle, Info, Filter, X, CreditCard, Lock, Navigation } from 'lucide-react';
+import { Search, Star, MapPin, Globe, Users, Clock, CheckCircle, Info, Filter, X, CreditCard, Lock, Navigation, Sparkles } from 'lucide-react';
 
 function ExploreContent() {
     const searchParams = useSearchParams();
