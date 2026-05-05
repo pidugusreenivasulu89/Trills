@@ -18,6 +18,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, Eye, EyeOff, User, Phone, AtSign, CheckCircle, XCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+import * as WebBrowser from 'expo-web-browser';
+
+// No redirect URIs needed for native SDKs
 
 // API base URL
 import { API_BASE_URL } from '../api/config';
@@ -35,6 +40,7 @@ export default function SignupScreen({ navigation }) {
     const [fadeAnim] = useState(new Animated.Value(0));
     const [slideAnim] = useState(new Animated.Value(50));
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingProvider, setLoadingProvider] = useState(null);
     const buttonScale = React.useRef(new Animated.Value(1)).current;
 
     const animateButton = (scale) => {
@@ -44,6 +50,59 @@ export default function SignupScreen({ navigation }) {
             speed: 50,
             bounciness: 10,
         }).start();
+    };
+
+    // Configure Google Sign-In
+    React.useEffect(() => {
+        GoogleSignin.configure({
+            // IMPORTANT: Use the "Web Application" client ID here, NOT the iOS or Android one.
+            webClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com', 
+            offlineAccess: true,
+        });
+    }, []);
+
+    // Social responses now handled directly by button handlers
+
+    const handleSocialBackendLogin = async (provider, token) => {
+        try {
+            setIsLoading(true);
+            let userInfoUrl = '';
+            if (provider === 'google') {
+                userInfoUrl = 'https://www.googleapis.com/userinfo/v2/me';
+            } else {
+                userInfoUrl = `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${token}`;
+            }
+
+            const userInfoRes = await axios.get(userInfoUrl, provider === 'google' ? {
+                headers: { Authorization: `Bearer ${token}` }
+            } : {});
+
+            const userData = userInfoRes.data;
+            const payload = {
+                name: userData.name,
+                email: userData.email || (provider === 'facebook' ? `${userData.id}@facebook.com` : ''),
+                image: provider === 'google' ? userData.picture : userData.picture?.data?.url,
+                provider: provider,
+                providerId: userData.id
+            };
+
+            const response = await axios.post(`${API_BASE_URL}/users/social-auth`, payload);
+
+            if (response.data && response.data.user) {
+                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+                setTimeout(() => {
+                    navigation.replace('MainTabs', { screen: 'Feed' });
+                }, 100);
+            } else {
+                Alert.alert('Signup Failed', 'Failed to synchronize with server');
+            }
+        } catch (error) {
+            console.error(`${provider} signup error:`, error);
+            Alert.alert('Signup Error', `Failed to signup with ${provider}`);
+        } finally {
+            setLoadingProvider(null);
+            setIsLoading(false);
+        }
     };
 
     React.useEffect(() => {
@@ -107,14 +166,10 @@ export default function SignupScreen({ navigation }) {
             if (response.data && response.data.user) {
                 await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
 
-                if (Platform.OS === 'web') {
-                    window.alert('Account created successfully!');
-                    navigation.replace('MainTabs');
-                } else {
-                    Alert.alert('Success', 'Account created successfully!', [
-                        { text: 'OK', onPress: () => navigation.replace('MainTabs') }
-                    ]);
-                }
+                // A slight delay prevents native modal dismissal timing issues
+                setTimeout(() => {
+                    navigation.replace('MainTabs', { screen: 'Feed' });
+                }, 100);
             } else {
                 Alert.alert('Registration Failed', 'User data missing from response');
             }
@@ -132,14 +187,57 @@ export default function SignupScreen({ navigation }) {
         }
     };
 
-    const handleSocialSignup = (provider) => {
+    const handleSocialSignup = async (provider) => {
         if (!agreedToTerms) {
             Alert.alert('Agreement Required', 'Please read and agree to our Terms & Conditions to proceed with social signup.');
             return;
         }
-        console.log(`Signup with ${provider}`);
-        // Implement social signup logic here
-        navigation.replace('MainTabs');
+
+        if (provider === 'Google') {
+            try {
+                setLoadingProvider('google');
+                await GoogleSignin.hasPlayServices();
+                const userInfo = await GoogleSignin.signIn();
+                const tokens = await GoogleSignin.getTokens();
+                handleSocialBackendLogin('google', tokens.accessToken);
+            } catch (error) {
+                setLoadingProvider(null);
+                console.error('Google Signup Error:', error);
+                
+                let detailedError = error.message || 'Unknown error';
+                if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                    return; // User cancelled
+                } else if (error.code === statusCodes.IN_PROGRESS) {
+                    detailedError = 'Signup already in progress';
+                } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                    detailedError = 'Play Services not available or outdated';
+                } else {
+                    detailedError = `Code: ${error.code || 'None'} - ${error.message}. This is usually Google Developer Error 10. Verify package name 'in.trills.socialvibe' and register the correct SHA-1 in Google Console: debug builds use 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25, release builds use 60:03:82:FA:F2:1B:58:6E:0A:A1:73:79:BA:3B:53:E7:24:19:49:F1. Also confirm the webClientId is a Web Application client ID.`;
+                }
+                
+                Alert.alert('Signup Error', `Failed to initialize Google login session:\n\n${detailedError}`);
+            }
+        } else if (provider === 'Facebook') {
+            try {
+                setLoadingProvider('facebook');
+                const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+                if (result.isCancelled) {
+                    setLoadingProvider(null);
+                    console.log('Facebook Signup Cancelled');
+                } else {
+                    const data = await AccessToken.getCurrentAccessToken();
+                    if (data?.accessToken) {
+                        handleSocialBackendLogin('facebook', data.accessToken.toString());
+                    } else {
+                        throw new Error('Could not get Facebook access token');
+                    }
+                }
+            } catch (error) {
+                setLoadingProvider(null);
+                console.error('Facebook Signup Error:', error);
+                Alert.alert('Signup Error', error.message || 'Failed to sign up with Facebook');
+            }
+        }
     };
 
     return (
@@ -348,9 +446,14 @@ export default function SignupScreen({ navigation }) {
                                     style={[styles.socialButton, { backgroundColor: '#FDF4FF', borderColor: '#FBCFE8' }]}
                                     onPress={() => handleSocialSignup('Google')}
                                     activeOpacity={0.7}
+                                    disabled={loadingProvider !== null || isLoading}
                                 >
                                     <View style={[styles.socialIconContainer, { backgroundColor: '#4B184C' }]}>
-                                        <Text style={[styles.socialIcon, { color: '#ffffff' }]}>G</Text>
+                                        {loadingProvider === 'google' ? (
+                                            <ActivityIndicator size="small" color="#ffffff" />
+                                        ) : (
+                                            <Text style={[styles.socialIcon, { color: '#ffffff' }]}>G</Text>
+                                        )}
                                     </View>
                                     <Text style={[styles.socialButtonText, { color: '#4B184C' }]}>Google</Text>
                                 </TouchableOpacity>
@@ -359,9 +462,14 @@ export default function SignupScreen({ navigation }) {
                                     style={[styles.socialButton, { backgroundColor: '#FDF4FF', borderColor: '#FBCFE8' }]}
                                     onPress={() => handleSocialSignup('Facebook')}
                                     activeOpacity={0.7}
+                                    disabled={loadingProvider !== null || isLoading}
                                 >
                                     <View style={[styles.socialIconContainer, { backgroundColor: '#4B184C' }]}>
-                                        <Text style={[styles.socialIcon, { color: '#ffffff' }]}>f</Text>
+                                        {loadingProvider === 'facebook' ? (
+                                            <ActivityIndicator size="small" color="#ffffff" />
+                                        ) : (
+                                            <Text style={[styles.socialIcon, { color: '#ffffff' }]}>f</Text>
+                                        )}
                                     </View>
                                     <Text style={[styles.socialButtonText, { color: '#4B184C' }]}>Facebook</Text>
                                 </TouchableOpacity>

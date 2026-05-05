@@ -10,33 +10,28 @@ import {
     Image,
     KeyboardAvoidingView,
     Platform,
+    ActivityIndicator,
     ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import * as Google from 'expo-auth-session/providers/google';
-import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
+// Native SDKs only for Play Store
+
+WebBrowser.maybeCompleteAuthSession();
 
 import axios from 'axios';
 import { API_BASE_URL } from '../api/config';
 
-WebBrowser.maybeCompleteAuthSession();
-
 const { width, height } = Dimensions.get('window');
 
-const googleRedirectUri = makeRedirectUri({
-    scheme: 'trillsauth',
-    preferLocalhost: true
-});
-
-const fbRedirectUri = makeRedirectUri({
-    scheme: 'trillsauth',
-    preferLocalhost: true
-});
+// Native SDKs don't require manual redirect URI management here
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -45,85 +40,117 @@ export default function LoginScreen({ navigation }) {
     const [fadeAnim] = useState(new Animated.Value(0));
     const [slideAnim] = useState(new Animated.Value(50));
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingProvider, setLoadingProvider] = useState(null);
     const buttonScale = useRef(new Animated.Value(1)).current;
 
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
     const [isPhoneLogin, setIsPhoneLogin] = useState(false);
     const [isOtpSent, setIsOtpSent] = useState(false);
+    const otpInputs = useRef([]);
 
-    // Google Auth
-    const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-        // For production (Play Store), you MUST create a separate "Android" Client ID in Google Cloud Console
-        // and register the SHA-1 of your signing key.
-        androidClientId: '1001936941616-p4bb92evlgvh8bdsokk5s8sm4nodcjd8.apps.googleusercontent.com',
-        iosClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
-        webClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com',
-        redirectUri: googleRedirectUri,
+    // Expo Google Auth Request - Corrected Client IDs
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        androidClientId: "1001936941616-mcde8fevdm089p65p5jch23efdgsq158.apps.googleusercontent.com",
+        iosClientId: "1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com",
+        // Do NOT use iosClientId as webClientId - they are different types.
+        // If you have a Web Client ID from Google Console, add it here.
+        scheme: "trillsauth",
     });
 
-    // Facebook Auth
-    const [facebookRequest, facebookResponse, facebookPromptAsync] = Facebook.useAuthRequest({
-        clientId: '1667532970748314',
-        redirectUri: fbRedirectUri,
-    });
-
+    // Configure Google Sign-In
     React.useEffect(() => {
-        if (googleResponse?.type === 'success') {
-            const { authentication } = googleResponse;
-            handleSocialBackendLogin('google', authentication.accessToken);
-        } else if (googleResponse?.type === 'error') {
-            console.error('Google Auth Error:', googleResponse.error);
-            Alert.alert('Google Auth Error', googleResponse.error?.message || 'Failed to authenticate');
-        }
-    }, [googleResponse]);
+        GoogleSignin.configure({
+            // IMPORTANT: Use the "Web Application" client ID here, NOT the iOS or Android one.
+            webClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com', 
+            offlineAccess: true, 
+        });
+    }, []);
 
-    React.useEffect(() => {
-        if (facebookResponse?.type === 'success') {
-            const { authentication } = facebookResponse;
-            handleSocialBackendLogin('facebook', authentication.accessToken);
-        } else if (facebookResponse?.type === 'error') {
-            console.error('Facebook Auth Error:', facebookResponse.error);
-            Alert.alert('Facebook Auth Error', facebookResponse.error?.message || 'Failed to authenticate');
-        }
-    }, [facebookResponse]);
+    // Unified handleResponse replaced by direct button handlers for native SDK
+
+    // Facebook Auth is now handled directly by LoginManager (native)
+    // No need for useAuthRequest hook here
+
+    // Consolidate response handling
+    // No useEffect needed for native SDK flow
+
+    // Facebook Response useEffect removed as it's now handled by the native Promise in handleSocialLogin
 
     const handleSocialBackendLogin = async (provider, token) => {
         try {
+            console.log(`[SocialAuth] Starting backend sync for ${provider}...`);
             setIsLoading(true);
-            // Fetch user info from provider if needed, or send token to backend
+
             let userInfoUrl = '';
             if (provider === 'google') {
                 userInfoUrl = 'https://www.googleapis.com/userinfo/v2/me';
             } else {
-                userInfoUrl = `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${token}`;
+                // Facebook Graph API
+                userInfoUrl = `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${token}`;
             }
 
+            console.log(`[SocialAuth] Fetching user info from ${provider}...`);
             const userInfoRes = await axios.get(userInfoUrl, provider === 'google' ? {
                 headers: { Authorization: `Bearer ${token}` }
             } : {});
 
             const userData = userInfoRes.data;
+            console.log(`[SocialAuth] Successfully fetched ${provider} user data:`, JSON.stringify(userData).substring(0, 100));
+
+            // Validate we got at least an ID
+            if (!userData.id) {
+                console.error(`[SocialAuth] No ${provider} ID found in response`);
+                throw new Error(`Failed to retrieve user ID from ${provider}`);
+            }
+
             const payload = {
-                name: userData.name,
+                name: userData.name || 'User',
                 email: userData.email || (provider === 'facebook' ? `${userData.id}@facebook.com` : ''),
                 image: provider === 'google' ? userData.picture : userData.picture?.data?.url,
                 provider: provider,
                 providerId: userData.id
             };
 
-            const response = await axios.post(`${API_BASE_URL}/users/social-auth`, payload);
+            if (!payload.email || payload.email === '@facebook.com') {
+                console.error('[SocialAuth] Invalid email in payload:', payload.email);
+                throw new Error('Email is required but was not provided by the social platform');
+            }
+
+            console.log('[SocialAuth] Sending payload to backend:', payload.email);
+            const response = await axios.post(`${API_BASE_URL}/users/social-auth`, payload, {
+                timeout: 10000,
+                headers: { 'Content-Type': 'application/json' }
+            });
 
             if (response.data && response.data.user) {
+                console.log('[SocialAuth] Sync successful, saving user and navigating...');
                 await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-                navigation.replace('MainTabs');
+                
+                // Small delay to ensure state is settled before navigation
+                setTimeout(() => {
+                    navigation.replace('MainTabs');
+                }, 100);
             } else {
-                Alert.alert('Login Failed', 'Failed to synchronize with server');
+                console.error('[SocialAuth] Backend response missing user object:', response.data);
+                throw new Error('Server response was successful but user data is missing');
             }
         } catch (error) {
-            console.error(`${provider} login error:`, error);
-            Alert.alert('Login Error', `Failed to login with ${provider}`);
+            console.error(`[SocialAuth] ${provider} login sync failed:`, error);
+            let errorMsg = 'Server synchronization failed';
+            
+            if (error.response) {
+                console.log('[SocialAuth] Server Error Data:', error.response.data);
+                errorMsg = error.response.data?.error || error.response.data?.message || `Server error (${error.response.status})`;
+            } else if (error.request) {
+                errorMsg = 'No response from server. Please check your network.';
+            } else {
+                errorMsg = error.message;
+            }
+            
+            Alert.alert('Login Error', `${provider} login sync failed: ${errorMsg}`);
         } finally {
+            setLoadingProvider(null);
             setIsLoading(false);
         }
     };
@@ -136,6 +163,18 @@ export default function LoginScreen({ navigation }) {
             bounciness: 10,
         }).start();
     };
+
+    React.useEffect(() => {
+        if (response?.type === 'success') {
+            const { authentication } = response;
+            console.log('Google Auth Session success:', authentication.accessToken ? 'Yes' : 'No');
+            handleSocialBackendLogin('google', authentication.accessToken);
+        } else if (response?.type === 'error') {
+            console.error('Google Auth Session error:', response.error);
+            Alert.alert('Login Error', 'Failed to sign in with Google');
+            setLoadingProvider(null);
+        }
+    }, [response]);
 
     React.useEffect(() => {
         Animated.parallel([
@@ -177,7 +216,11 @@ export default function LoginScreen({ navigation }) {
 
             if (response.data && response.data.user) {
                 await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-                navigation.replace('MainTabs');
+                
+                // Small delay ensures storage and UI states are settled before navigation
+                setTimeout(() => {
+                    navigation.replace('MainTabs');
+                }, 100);
             } else {
                 Alert.alert('Login Failed', 'User data missing from response');
             }
@@ -195,11 +238,62 @@ export default function LoginScreen({ navigation }) {
         }
     };
 
-    const handleSocialLogin = (provider) => {
+    const handleSocialLogin = async (provider) => {
         if (provider === 'Google') {
-            googlePromptAsync();
+            try {
+                setLoadingProvider('google');
+                
+                // Now that Error 10 is gone, we can use the much more reliable Native SDK
+                console.log('Starting Native Google Sign-In...');
+                await GoogleSignin.hasPlayServices();
+                const userInfo = await GoogleSignin.signIn();
+                console.log('Native Google Sign-In Success:', userInfo.user.email);
+                
+                const tokens = await GoogleSignin.getTokens();
+                handleSocialBackendLogin('google', tokens.accessToken);
+                
+                /* Backup: Expo Auth Session flow
+                await promptAsync();
+                */
+            } catch (error) {
+                setLoadingProvider(null);
+                console.error('Google Auth Error:', error);
+                
+                let detailedError = error.message || 'Unknown error';
+                if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                    return; // User cancelled
+                } else if (error.code === statusCodes.IN_PROGRESS) {
+                    detailedError = 'Sign in already in progress';
+                } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                    detailedError = 'Play Services not available or outdated';
+                } else {
+                    // Error 10 is most often a package name / SHA-1 mismatch on Android.
+                    detailedError = `Code: ${error.code || 'None'} - ${error.message}. This is usually Google Developer Error 10. Verify package name 'in.trills.socialvibe' and register the correct SHA-1 in Google Console: debug builds use 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25, release builds use 60:03:82:FA:F2:1B:58:6E:0A:A1:73:79:BA:3B:53:E7:24:19:49:F1. Also confirm the webClientId is a Web Application client ID.`;
+                }
+                
+                Alert.alert('Login Error', `Failed to initialize Google login session:\n\n${detailedError}`);
+            }
         } else if (provider === 'Facebook') {
-            facebookPromptAsync();
+            try {
+                setLoadingProvider('facebook');
+                const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+                if (result.isCancelled) {
+                    setLoadingProvider(null);
+                    console.log('Facebook Sign-In Cancelled');
+                } else {
+                    const data = await AccessToken.getCurrentAccessToken();
+                    if (data?.accessToken) {
+                        console.log('Facebook Sign-In Success token:', data.accessToken.substring(0, 10) + '...');
+                        handleSocialBackendLogin('facebook', data.accessToken.toString());
+                    } else {
+                        throw new Error('Could not get Facebook access token');
+                    }
+                }
+            } catch (error) {
+                setLoadingProvider(null);
+                console.error('Facebook Sign-In Error:', error);
+                Alert.alert('Login Error', error.message || 'Failed to sign in with Facebook');
+            }
         }
     };
 
@@ -209,44 +303,89 @@ export default function LoginScreen({ navigation }) {
             return;
         }
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/otp/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone }),
-            });
-            const data = await response.json();
-            if (response.ok) {
+            setIsLoading(true);
+            const response = await axios.post(`${API_BASE_URL}/auth/otp/generate`, { phone });
+            
+            if (response.data) {
                 setIsOtpSent(true);
-                Alert.alert('Success', `OTP sent! (Dev: ${data.otp})`); // Showing OTP for dev convenience
-            } else {
-                Alert.alert('Error', data.error);
+                Alert.alert('Success', `OTP sent successfully!${response.data.otp ? ' (Dev: ' + response.data.otp + ')' : ''}`);
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to send OTP');
+            console.error('Send OTP Error:', error);
+            const msg = error.response?.data?.error || 'Failed to send OTP. Please try again.';
+            Alert.alert('Error', msg);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleVerifyOtp = async () => {
-        if (!otp) {
-            Alert.alert('Error', 'Please enter the OTP');
+        if (otp.length < 6) {
+            Alert.alert('Error', 'Please enter the 6-digit OTP');
             return;
         }
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, otp }),
+            setIsLoading(true);
+            console.log('Verifying OTP for:', phone);
+            
+            const response = await axios.post(`${API_BASE_URL}/auth/otp/verify`, { 
+                phone, 
+                otp 
             });
-            const data = await response.json();
-            if (response.ok) {
-                await AsyncStorage.setItem('user', JSON.stringify(data.user));
-                navigation.replace('MainTabs');
+
+            if (response.data && response.data.user) {
+                console.log('OTP Verified, saving user data...');
+                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+                
+                // Small delay to ensure storage is settled
+                setTimeout(() => {
+                    navigation.replace('MainTabs');
+                }, 100);
             } else {
-                Alert.alert('Error', data.error);
+                Alert.alert('Error', 'Invalid user data received from server');
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to verify OTP');
+            console.error('Verify OTP Error:', error);
+            const msg = error.response?.data?.error || 'Incorrect OTP. Please check and try again.';
+            Alert.alert('Verification Failed', msg);
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    const renderOtpInputs = () => {
+        return (
+            <View style={styles.otpWrapper}>
+                <Text style={styles.otpLabel}>Enter the 6-digit verification code</Text>
+                
+                <View style={[styles.inputContainer, { width: '100%', borderBottomWidth: 2, borderBottomColor: '#4B184C' }]}>
+                    <Lock color="#9CA3AF" size={20} style={styles.inputIcon} />
+                    <TextInput
+                        style={[styles.input, { fontSize: 24, letterSpacing: 10, fontWeight: 'bold' }]}
+                        placeholder="000000"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        value={otp}
+                        onChangeText={(value) => setOtp(value.replace(/[^0-9]/g, ''))}
+                        autoComplete="sms-otp"
+                        textContentType="oneTimeCode"
+                        autoFocus={true}
+                        textAlign="center"
+                    />
+                </View>
+
+                <TouchableOpacity 
+                    onPress={() => {
+                        setOtp('');
+                        setIsOtpSent(false);
+                    }}
+                    style={styles.resendContainer}
+                >
+                    <Text style={styles.resendText}>Wrong number? <Text style={styles.resendLink}>Change</Text></Text>
+                </TouchableOpacity>
+            </View>
+        );
     };
 
 
@@ -318,9 +457,14 @@ export default function LoginScreen({ navigation }) {
                                             style={[styles.socialButton, { backgroundColor: '#FDF4FF', borderColor: '#FBCFE8' }]}
                                             onPress={() => handleSocialLogin('Google')}
                                             activeOpacity={0.7}
+                                            disabled={loadingProvider !== null || isLoading}
                                         >
                                             <View style={[styles.socialIconContainer, { backgroundColor: '#4B184C' }]}>
-                                                <Text style={[styles.socialIcon, { color: '#ffffff' }]}>G</Text>
+                                                {loadingProvider === 'google' ? (
+                                                    <ActivityIndicator size="small" color="#ffffff" />
+                                                ) : (
+                                                    <Text style={[styles.socialIcon, { color: '#ffffff' }]}>G</Text>
+                                                )}
                                             </View>
                                             <Text style={[styles.socialButtonText, { color: '#4B184C' }]}>Google</Text>
                                         </TouchableOpacity>
@@ -329,9 +473,14 @@ export default function LoginScreen({ navigation }) {
                                             style={[styles.socialButton, { backgroundColor: '#FDF4FF', borderColor: '#FBCFE8' }]}
                                             onPress={() => handleSocialLogin('Facebook')}
                                             activeOpacity={0.7}
+                                            disabled={loadingProvider !== null || isLoading}
                                         >
                                             <View style={[styles.socialIconContainer, { backgroundColor: '#4B184C' }]}>
-                                                <Text style={[styles.socialIcon, { color: '#ffffff' }]}>f</Text>
+                                                {loadingProvider === 'facebook' ? (
+                                                    <ActivityIndicator size="small" color="#ffffff" />
+                                                ) : (
+                                                    <Text style={[styles.socialIcon, { color: '#ffffff' }]}>f</Text>
+                                                )}
                                             </View>
                                             <Text style={[styles.socialButtonText, { color: '#4B184C' }]}>Facebook</Text>
                                         </TouchableOpacity>
@@ -382,7 +531,10 @@ export default function LoginScreen({ navigation }) {
                                     </View>
 
                                     {/* Forgot Password */}
-                                    <TouchableOpacity style={styles.forgotPassword}>
+                                    <TouchableOpacity 
+                                        style={styles.forgotPassword}
+                                        onPress={() => navigation.navigate('ForgotPassword')}
+                                    >
                                         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                                     </TouchableOpacity>
 
@@ -418,18 +570,7 @@ export default function LoginScreen({ navigation }) {
                                         />
                                     </View>
 
-                                    {isOtpSent && (
-                                        <View style={styles.inputContainer}>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Enter OTP"
-                                                placeholderTextColor="#9CA3AF"
-                                                value={otp}
-                                                onChangeText={setOtp}
-                                                keyboardType="numeric"
-                                            />
-                                        </View>
-                                    )}
+                                     {isOtpSent && renderOtpInputs()}
 
                                     <TouchableOpacity
                                         onPress={isOtpSent ? handleVerifyOtp : handleSendOtp}
@@ -437,11 +578,16 @@ export default function LoginScreen({ navigation }) {
                                         onPressOut={() => animateButton(1)}
                                         activeOpacity={0.8}
                                         style={[styles.loginButton, { marginTop: 16 }]}
+                                        disabled={isLoading}
                                     >
                                         <Animated.View style={[styles.loginButtonContent, { transform: [{ scale: buttonScale }] }]}>
-                                            <Text style={styles.loginButtonText}>
-                                                {isOtpSent ? 'Verify OTP' : 'Send OTP'}
-                                            </Text>
+                                            {isLoading ? (
+                                                <ActivityIndicator color="#fff" />
+                                            ) : (
+                                                <Text style={styles.loginButtonText}>
+                                                    {isOtpSent ? 'Verify & Continue' : 'Get OTP'}
+                                                </Text>
+                                            )}
                                         </Animated.View>
                                     </TouchableOpacity>
                                 </>
@@ -696,5 +842,27 @@ const styles = StyleSheet.create({
     toggleTextActive: {
         color: '#7B2D7E',
         fontWeight: 'bold',
+    },
+    otpWrapper: {
+        marginBottom: 20,
+        alignItems: 'center',
+        width: '100%',
+    },
+    otpLabel: {
+        fontSize: 14,
+        color: '#64748b',
+        marginBottom: 16,
+        fontWeight: '500',
+    },
+    resendContainer: {
+        marginTop: 16,
+    },
+    resendText: {
+        fontSize: 13,
+        color: '#64748b',
+    },
+    resendLink: {
+        color: '#7B2D7E',
+        fontWeight: '700',
     },
 });
