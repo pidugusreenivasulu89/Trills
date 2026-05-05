@@ -17,10 +17,27 @@ export async function GET(request) {
         await dbConnect();
         const { searchParams } = new URL(request.url);
         const email = searchParams.get('email');
+        const viewerEmail = searchParams.get('viewerEmail')?.toLowerCase();
 
         if (email) {
             const user = await User.findOne({ email: email.toLowerCase() });
             if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404, headers: corsHeaders });
+
+            const isOwner = viewerEmail && viewerEmail === user.email.toLowerCase();
+            if (user.isPrivate && !isOwner) {
+                return NextResponse.json({
+                    error: 'This profile is private',
+                    private: true,
+                    user: {
+                        id: user._id,
+                        name: user.name,
+                        image: user.image,
+                        verified: user.verified,
+                        isPrivate: true
+                    }
+                }, { status: 403, headers: corsHeaders });
+            }
+
             return NextResponse.json({
                 success: true,
                 user: {
@@ -31,6 +48,10 @@ export async function GET(request) {
                     designation: user.designation,
                     location: user.location,
                     image: user.image,
+                    interests: user.interests || [],
+                    isPrivate: user.isPrivate || false,
+                    isBot: user.isBot || false,
+                    bio: user.bio,
                     points: user.points || 0,
                     tier: user.tier || 'Silver'
                 }

@@ -1,10 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from "next-auth/react";
 import { activityFeed, mockConnections, venues, events } from '@/lib/data';
-import { Heart, MessageSquare, Share2, Image as ImageIcon, Link as LinkIcon, Send, MoreHorizontal, X, Shield, EyeOff, UserX, CheckCircle, UserPlus, MapPin, Calendar, ArrowRight, Star } from 'lucide-react';
+import { Heart, MessageSquare, Share2, Image as ImageIcon, Link as LinkIcon, Send, MoreHorizontal, X, Shield, UserX, CheckCircle, UserPlus, MapPin, Calendar, ArrowRight, Star } from 'lucide-react';
+
+const botProfiles = [
+    { name: 'Alex Rivera', email: 'alex@trills.com', avatar: 'https://i.pravatar.cc/150?u=alex', verified: true, comment: 'Great share. This is exactly the kind of local tip people look for here.' },
+    { name: 'Maya Iyer', email: 'maya@trills.com', avatar: 'https://i.pravatar.cc/150?u=maya', verified: true, comment: 'Love this. I know a few members who would enjoy joining next time.' },
+    { name: 'Marcus Chen', email: 'marcus@trills.com', avatar: 'https://i.pravatar.cc/150?u=marcus', verified: true, comment: 'Nice one. The community feed feels better with posts like this.' },
+];
 
 export default function FeedPage() {
     const [posts, setPosts] = useState(() => {
@@ -24,7 +31,6 @@ export default function FeedPage() {
     const [editingPostId, setEditingPostId] = useState(null);
     const [editContent, setEditContent] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
-    const [hiddenPostIds, setHiddenPostIds] = useState([]);
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [toastMessage, setToastMessage] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -97,6 +103,7 @@ export default function FeedPage() {
             id: Date.now().toString(),
             user: {
                 name: user?.name || 'You',
+                email: user?.email,
                 avatar: user?.avatar || user?.image || 'https://i.pravatar.cc/150?u=me',
                 verified: user?.verified || false
             },
@@ -114,6 +121,45 @@ export default function FeedPage() {
         setAttachedImage('');
         setAttachedLink('');
         setShowLinkInput(false);
+        showToast('Posted. A few members are checking it out now.');
+
+        const engagedBots = botProfiles.slice(0, 2);
+        setTimeout(() => {
+            setPosts(currentPosts => currentPosts.map(currentPost => {
+                if (currentPost.id !== post.id) return currentPost;
+                return {
+                    ...currentPost,
+                    likes: currentPost.likes + engagedBots.length,
+                    comments: [
+                        ...currentPost.comments,
+                        {
+                            id: `${post.id}-bot-1`,
+                            user: engagedBots[0].name,
+                            avatar: engagedBots[0].avatar,
+                            text: engagedBots[0].comment
+                        }
+                    ]
+                };
+            }));
+        }, 1800);
+
+        setTimeout(() => {
+            setPosts(currentPosts => currentPosts.map(currentPost => {
+                if (currentPost.id !== post.id) return currentPost;
+                return {
+                    ...currentPost,
+                    comments: [
+                        ...currentPost.comments,
+                        {
+                            id: `${post.id}-bot-2`,
+                            user: engagedBots[1].name,
+                            avatar: engagedBots[1].avatar,
+                            text: engagedBots[1].comment
+                        }
+                    ]
+                };
+            }));
+        }, 4200);
     };
 
     const handleKeyDown = (e) => {
@@ -178,6 +224,7 @@ export default function FeedPage() {
     const handleDelete = (postId) => {
         if (confirm('Are you sure you want to delete this post?')) {
             setPosts(posts.filter(post => post.id !== postId));
+            setActiveMenuId(null);
         }
     };
 
@@ -199,15 +246,8 @@ export default function FeedPage() {
         setEditContent('');
     };
 
-    const handleHide = (postId) => {
-        setHiddenPostIds([...hiddenPostIds, postId]);
-        setActiveMenuId(null);
-        showToast('Post hidden from your feed');
-    };
-
     const handleReport = (post) => {
         // In a real app, this would call an API
-        setHiddenPostIds([...hiddenPostIds, post.id]);
         setActiveMenuId(null);
         showToast('Thank you for reporting. We will review this post.');
     };
@@ -227,10 +267,7 @@ export default function FeedPage() {
         setTimeout(() => setToastMessage(''), 3000);
     };
 
-    const visiblePosts = posts.filter(post =>
-        !hiddenPostIds.includes(post.id) &&
-        !blockedUsers.includes(post.user.name)
-    );
+    const visiblePosts = posts.filter(post => !blockedUsers.includes(post.user.name));
 
     if (isLoading) {
         return (
@@ -363,7 +400,12 @@ export default function FeedPage() {
                                     />
                                     <div>
                                         <h4 className="title-font" style={{ fontSize: '1rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                            {post.user.name}
+                                            <Link
+                                                href={`/profile?email=${encodeURIComponent(post.user.email || `${post.user.name.toLowerCase().replace(/\s+/g, '.')}@trills.com`)}`}
+                                                style={{ color: 'inherit', textDecoration: 'none' }}
+                                            >
+                                                {post.user.name}
+                                            </Link>
                                             {post.user.verified && <CheckCircle size={14} fill="#4B184C" color="white" />}
                                         </h4>
                                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{post.timestamp}</p>
@@ -410,14 +452,6 @@ export default function FeedPage() {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button
-                                                        onClick={() => handleHide(post.id)}
-                                                        style={{ width: '100%', padding: '10px 8px', background: 'none', border: 'none', color: 'var(--text-main)', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem', borderRadius: '8px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
-                                                        onMouseEnter={(e) => e.target.style.background = 'rgba(75, 24, 76, 0.05)'}
-                                                        onMouseLeave={(e) => e.target.style.background = 'none'}
-                                                    >
-                                                        <EyeOff size={16} /> Hide Post
-                                                    </button>
                                                     <button
                                                         onClick={() => handleReport(post)}
                                                         style={{ width: '100%', padding: '10px 8px', background: 'none', border: 'none', color: 'var(--text-main)', textAlign: 'left', cursor: 'pointer', fontSize: '0.9rem', borderRadius: '8px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}

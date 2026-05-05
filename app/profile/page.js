@@ -4,10 +4,12 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from "next-auth/react";
 import { mockConnections, checkInviteEligibility, designationOptions, locationOptions } from '@/lib/data';
-import { User, Mail, MapPin, Briefcase, Camera, Edit2, Users, CheckCircle, ShieldAlert, Send, ArrowRight, ShieldCheck, Loader2, Sparkles, AlertCircle, Calendar, Settings, Shield, Award, Star } from 'lucide-react';
+import { User, Mail, MapPin, Briefcase, Camera, Edit2, Users, CheckCircle, ShieldAlert, Send, ArrowRight, ShieldCheck, Loader2, Sparkles, AlertCircle, Calendar, Settings, Shield, Award, Star, Lock } from 'lucide-react';
 
 function ProfileContent() {
     const [user, setUser] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [profileBlocked, setProfileBlocked] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [verificationStep, setVerificationStep] = useState(0); // 0: start, 1: scanning, 2: success
@@ -26,6 +28,9 @@ function ProfileContent() {
     const { data: session, status: sessionStatus } = useSession();
 
     const [connectionCount, setConnectionCount] = useState(mockConnections.length);
+    const [connections, setConnections] = useState([]);
+    const viewedEmail = searchParams.get('email')?.toLowerCase();
+    const isOwnProfile = !viewedEmail || viewedEmail === currentUser?.email?.toLowerCase();
 
     useEffect(() => {
         const checkUser = async () => {
@@ -51,39 +56,77 @@ function ProfileContent() {
                 if (userData.image && !userData.avatar) userData.avatar = userData.image;
                 if (userData.avatar && !userData.image) userData.image = userData.avatar;
 
-                setUser(userData);
-                setEditData(userData);
+                setCurrentUser(userData);
+                setProfileBlocked(null);
+
+                const targetEmail = viewedEmail || userData.email;
+                const viewingOwnProfile = !viewedEmail || viewedEmail === userData.email?.toLowerCase();
 
                 // Fetch real connection count and profile data
                 try {
-                    const email = userData.email || 'sreenivas@trills.com';
+                    const email = targetEmail || 'sreenivas@trills.com';
 
                     // Sync latest profile data
                     try {
-                        const profileRes = await fetch(`/api/users?email=${email}`);
+                        const profileRes = await fetch(`/api/users?email=${encodeURIComponent(email)}&viewerEmail=${encodeURIComponent(userData.email || '')}`);
                         const profileJson = await profileRes.json();
                         if (profileJson.success && profileJson.user) {
-                            const updatedUser = { ...userData, ...profileJson.user };
+                            const updatedUser = { ...profileJson.user };
+                            if (updatedUser.image && !updatedUser.avatar) updatedUser.avatar = updatedUser.image;
                             setUser(updatedUser);
-                            localStorage.setItem('user_profile', JSON.stringify(updatedUser));
+                            setEditData(updatedUser);
+                            if (viewingOwnProfile) {
+                                localStorage.setItem('user_profile', JSON.stringify({ ...userData, ...updatedUser }));
+                                setCurrentUser({ ...userData, ...updatedUser });
+                            }
+                        } else if (profileJson.private) {
+                            setProfileBlocked(profileJson.user || { name: 'This member', isPrivate: true });
+                            setUser(null);
+                            setEditData({});
+                            setIsLoading(false);
+                            return;
                         }
                     } catch (err) { console.error('Profile sync failed', err); }
 
-                    const res = await fetch(`/api/connections?email=${email}`);
+                    const res = await fetch(`/api/connections?email=${encodeURIComponent(email)}`);
                     const data = await res.json();
                     let count = data.count || 0;
 
                     // Add local pending if any
-                    if (userData.pending_connections) {
+                    if (viewingOwnProfile && userData.pending_connections) {
                         count += userData.pending_connections.length;
                     }
                     setConnectionCount(count);
+
+                    const connectionsRes = await fetch(`/api/connections?email=${encodeURIComponent(email)}&type=connections`);
+                    const connectionsData = await connectionsRes.json();
+                    const normalizedConnections = Array.isArray(connectionsData)
+                        ? connectionsData.map((item, index) => {
+                            const connUser = item.user || item.recipient || item.requester || item;
+                            return {
+                                id: item.id || item._id || connUser.email || `conn-${index}`,
+                                name: connUser.name,
+                                email: connUser.email,
+                                avatar: connUser.avatar || connUser.image || `https://i.pravatar.cc/150?u=${connUser.email || connUser.name}`,
+                                designation: connUser.designation || 'Trills member',
+                                location: connUser.location,
+                                verified: !!connUser.verified,
+                                mutual: true,
+                                isBot: !!connUser.isBot
+                            };
+                        })
+                        : [];
+                    setConnections(normalizedConnections);
+                    if (count === 0 && viewingOwnProfile && normalizedConnections.length === 0) {
+                        setConnectionCount(mockConnections.length);
+                    }
                 } catch (e) {
                     console.error('Failed to fetch connection count');
+                    setConnections([]);
                 }
 
                 // Trigger verification if requested via URL
-                if (searchParams.get('verify') === 'true' && !userData.verified) {
+                if (viewingOwnProfile && searchParams.get('verify') === 'true' && !userData.verified) {
                     setIsVerifying(true);
                 }
             } else if (session) {
@@ -107,7 +150,7 @@ function ProfileContent() {
             window.removeEventListener('storage', checkUser);
             window.removeEventListener('userLogin', checkUser);
         };
-    }, [searchParams, router, session, sessionStatus]);
+    }, [searchParams, router, session, sessionStatus, viewedEmail]);
 
     const handleSave = async () => {
         try {
@@ -131,6 +174,7 @@ function ProfileContent() {
                 localStorage.setItem('user_profile', JSON.stringify(dataToSave));
                 window.dispatchEvent(new Event('userLogin'));
                 setUser({ ...dataToSave });
+                setCurrentUser({ ...dataToSave });
                 setIsEditing(false);
                 showToast('Profile updated to database! ✨');
             } else {
@@ -144,6 +188,40 @@ function ProfileContent() {
             } else {
                 showToast('An error occurred while saving. ❌');
             }
+        }
+    };
+
+    const handlePrivacyToggle = async () => {
+        if (!currentUser?.email || !isOwnProfile) return;
+
+        const nextPrivate = !user?.isPrivate;
+        try {
+            const res = await fetch('/api/users/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: currentUser.email,
+                    isPrivate: nextPrivate
+                })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                showToast(data.error || 'Failed to update privacy setting.');
+                return;
+            }
+
+            const updatedUser = { ...user, isPrivate: nextPrivate };
+            const updatedCurrentUser = { ...currentUser, isPrivate: nextPrivate };
+            setUser(updatedUser);
+            setEditData(prev => ({ ...prev, isPrivate: nextPrivate }));
+            setCurrentUser(updatedCurrentUser);
+            localStorage.setItem('user_profile', JSON.stringify(updatedCurrentUser));
+            window.dispatchEvent(new Event('userLogin'));
+            showToast(nextPrivate ? 'Your profile is now private.' : 'Your profile is now public.');
+        } catch (error) {
+            console.error('Privacy update error:', error);
+            showToast('Could not update privacy right now.');
         }
     };
 
@@ -312,6 +390,19 @@ function ProfileContent() {
 
     if (isLoading) return <div className="container" style={{ textAlign: 'center', paddingTop: '100px', color: 'var(--text-muted)' }}>Loading...</div>;
 
+    if (profileBlocked) return (
+        <div className="container" style={{ textAlign: 'center', paddingTop: '100px' }}>
+            <div className="glass-card" style={{ maxWidth: '420px', margin: '0 auto', padding: '40px' }}>
+                <Lock size={48} color="var(--primary)" style={{ marginBottom: '20px' }} />
+                <h2 className="title-font" style={{ marginBottom: '10px' }}>Private Profile</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>
+                    {profileBlocked.name || 'This member'} keeps their profile private.
+                </p>
+                <button onClick={() => router.back()} className="btn-primary" style={{ width: '100%' }}>Go Back</button>
+            </div>
+        </div>
+    );
+
     if (!user) return (
         <div className="container" style={{ textAlign: 'center', paddingTop: '100px' }}>
             <div className="glass-card" style={{ maxWidth: '400px', margin: '0 auto', padding: '40px' }}>
@@ -343,15 +434,17 @@ function ProfileContent() {
                     )}
                     <input type="file" ref={bannerInputRef} onChange={handleBannerEdit} accept="image/*" style={{ display: 'none' }} />
 
-                    <button
-                        onClick={() => {
-                            if (!isEditing) setEditData({ ...user });
-                            setIsEditing(!isEditing);
-                        }}
-                        style={{ position: 'absolute', bottom: '20px', right: '20px', background: 'var(--bg-dark)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', padding: '8px 16px', borderRadius: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.3s', zIndex: 5 }}
-                    >
-                        <Edit2 size={16} /> {isEditing ? 'Cancel Edit' : 'Edit Profile'}
-                    </button>
+                    {isOwnProfile && (
+                        <button
+                            onClick={() => {
+                                if (!isEditing) setEditData({ ...user });
+                                setIsEditing(!isEditing);
+                            }}
+                            style={{ position: 'absolute', bottom: '20px', right: '20px', background: 'var(--bg-dark)', border: '1px solid var(--border-glass)', color: 'var(--text-main)', padding: '8px 16px', borderRadius: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.3s', zIndex: 5 }}
+                        >
+                            <Edit2 size={16} /> {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ padding: '0 40px 40px', marginTop: '-50px', position: 'relative', zIndex: 2 }}>
@@ -568,7 +661,7 @@ function ProfileContent() {
                                         <button onClick={() => setActiveTab('connections')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>View All</button>
                                     </div>
                                     <div style={{ display: 'flex', gap: '15px' }}>
-                                        {mockConnections.slice(0, 4).map(conn => (
+                                        {(connections.length ? connections : (isOwnProfile ? mockConnections : [])).slice(0, 4).map(conn => (
                                             <div key={conn.id} style={{ textAlign: 'center' }}>
                                                 <img src={conn.avatar} alt={conn.name} style={{ width: '50px', height: '50px', borderRadius: '50%', border: '2px solid var(--bg-glass)', marginBottom: '5px' }} />
                                                 <div style={{ fontSize: '0.65rem', fontWeight: 'bold', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conn.name.split(' ')[0]}</div>
@@ -581,7 +674,7 @@ function ProfileContent() {
 
                         {activeTab === 'connections' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                {mockConnections.map(conn => (
+                                {(connections.length ? connections : (isOwnProfile ? mockConnections : [])).map(conn => (
                                     <div key={conn.id} className="glass-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                                             <img src={conn.avatar} alt={conn.name} style={{ width: '50px', height: '50px', borderRadius: '50%' }} />
@@ -598,15 +691,30 @@ function ProfileContent() {
                                                 )}
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => handleInvite(conn)}
-                                            className={conn.mutual ? "btn-primary" : "btn-outline"}
-                                            style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        >
-                                            {conn.mutual ? <><Send size={14} /> Invite to Meet</> : <><ShieldAlert size={14} /> Request Access</>}
-                                        </button>
+                                        {isOwnProfile ? (
+                                            <button
+                                                onClick={() => handleInvite(conn)}
+                                                className={conn.mutual ? "btn-primary" : "btn-outline"}
+                                                style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                            >
+                                                {conn.mutual ? <><Send size={14} /> Invite to Meet</> : <><ShieldAlert size={14} /> Request Access</>}
+                                            </button>
+                                        ) : (
+                                            <a
+                                                href={`/profile?email=${encodeURIComponent(conn.email || '')}`}
+                                                className="btn-outline"
+                                                style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+                                            >
+                                                View Profile
+                                            </a>
+                                        )}
                                     </div>
                                 ))}
+                                {!connections.length && (
+                                    <div className="glass-card" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        No accepted connections yet.
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -715,15 +823,20 @@ function ProfileContent() {
                                             <div style={{ position: 'absolute', right: '2px', top: '2px', width: '16px', height: '16px', background: 'white', borderRadius: '50%' }}></div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <button
+                                        type="button"
+                                        onClick={handlePrivacyToggle}
+                                        disabled={!isOwnProfile}
+                                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', color: 'inherit', padding: 0, cursor: isOwnProfile ? 'pointer' : 'default', textAlign: 'left' }}
+                                    >
                                         <div>
-                                            <div style={{ fontWeight: '600' }}>Public Profile</div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Make your activity feed visible to all</div>
+                                            <div style={{ fontWeight: '600' }}>Private Profile</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Hide your profile and connections from other members</div>
                                         </div>
-                                        <div style={{ width: '40px', height: '20px', background: 'var(--border-glass)', borderRadius: '10px', position: 'relative' }}>
-                                            <div style={{ position: 'absolute', left: '2px', top: '2px', width: '16px', height: '16px', background: 'white', borderRadius: '50%' }}></div>
+                                        <div style={{ width: '42px', height: '22px', background: user?.isPrivate ? 'var(--primary)' : 'var(--border-glass)', borderRadius: '11px', position: 'relative', transition: '0.2s' }}>
+                                            <div style={{ position: 'absolute', left: user?.isPrivate ? '22px' : '2px', top: '2px', width: '18px', height: '18px', background: 'white', borderRadius: '50%', transition: '0.2s' }}></div>
                                         </div>
-                                    </div>
+                                    </button>
                                     <button className="btn-outline" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)', marginTop: '20px' }}>Delete Account</button>
                                 </div>
                             </div>

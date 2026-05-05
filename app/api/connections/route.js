@@ -164,8 +164,34 @@ export async function GET(request) {
                     { requester: user._id, status: 'accepted' },
                     { recipient: user._id, status: 'accepted' }
                 ]
-            }).populate('requester recipient', 'name email image verified');
-            return NextResponse.json(connections, { headers: corsHeaders });
+            }).populate('requester recipient', 'name email image verified designation location isPrivate isBot');
+
+            const normalized = connections
+                .map((connection) => {
+                    const requester = connection.requester;
+                    const recipient = connection.recipient;
+                    const otherUser = requester._id.toString() === user._id.toString() ? recipient : requester;
+                    return {
+                        id: connection._id,
+                        status: connection.status,
+                        connectedAt: connection.createdAt,
+                        user: {
+                            id: otherUser._id,
+                            name: otherUser.name,
+                            email: otherUser.email,
+                            image: otherUser.image,
+                            avatar: otherUser.image,
+                            verified: otherUser.verified,
+                            designation: otherUser.designation,
+                            location: otherUser.location,
+                            isPrivate: otherUser.isPrivate || false,
+                            isBot: otherUser.isBot || false
+                        }
+                    };
+                })
+                .filter((connection) => !connection.user.isPrivate);
+
+            return NextResponse.json(normalized, { headers: corsHeaders });
         }
 
         // Default: count

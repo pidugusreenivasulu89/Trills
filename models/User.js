@@ -21,6 +21,9 @@ const UserSchema = new mongoose.Schema({
     },
     authProvider: { type: String, enum: ['email', 'google', 'facebook', 'apple'], default: 'email' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    isPrivate: { type: Boolean, default: false },
+    isBot: { type: Boolean, default: false },
+    bio: String,
 
     // Loyalty Program
     points: { type: Number, default: 0 },

@@ -48,7 +48,9 @@ export async function PATCH(request) {
                 designation: user.designation,
                 location: user.location,
                 interests: user.interests,
-                verified: user.verified
+                verified: user.verified,
+                isPrivate: user.isPrivate || false,
+                bio: user.bio
             }
         }, { headers: corsHeaders });
     } catch (error) {
