@@ -91,6 +91,28 @@ export default function NotificationsScreen({ navigation }) {
         fetchNotifications();
     }, []);
 
+    const addAcceptedConnection = async (connection) => {
+        const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
+        const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
+        const friend = {
+            email: connection.email,
+            name: connection.name || connection.email?.split('@')[0] || 'Connection',
+            avatar: connection.avatar,
+            acceptedAt: new Date().toISOString()
+        };
+
+        const withoutDuplicate = acceptedList.filter(item => item.email !== friend.email);
+        await AsyncStorage.setItem('accepted_connections', JSON.stringify([friend, ...withoutDuplicate]));
+        await AsyncStorage.setItem('friend_list', JSON.stringify([friend, ...withoutDuplicate]));
+
+        const pendingRaw = await AsyncStorage.getItem('pending_connections');
+        const pendingList = pendingRaw ? JSON.parse(pendingRaw) : [];
+        await AsyncStorage.setItem(
+            'pending_connections',
+            JSON.stringify(pendingList.filter(email => email !== friend.email))
+        );
+    };
+
     const getIcon = (type) => {
         switch (type) {
             case 'match':
@@ -126,13 +148,28 @@ export default function NotificationsScreen({ navigation }) {
                     status: status // 'accepted' or 'rejected'
                 });
 
+                if (status === 'accepted') {
+                    await addAcceptedConnection({
+                        email: notif.senderEmail,
+                        name: notif.userName,
+                        avatar: notif.avatar
+                    });
+                }
+
                 // Update local UI
                 setNotifications(notifications.map(n =>
-                    n._id === notif._id ? { ...n, read: true, content: `You ${status} the connection request.` } : n
+                    n._id === notif._id
+                        ? {
+                            ...n,
+                            read: true,
+                            type: status === 'accepted' ? 'accepted' : n.type,
+                            content: status === 'accepted' ? 'Added to network.' : 'Connection request declined.'
+                        }
+                        : n
                 ));
 
                 if (status === 'accepted') {
-                    Alert.alert('Success', 'Connection accepted!');
+                    Alert.alert('Success', `${notif.userName || 'This member'} added to your network.`);
                 }
             }
         } catch (error) {

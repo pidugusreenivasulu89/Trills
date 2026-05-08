@@ -12,7 +12,7 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
+      "autoIncrement": false,
       "env": {
         "EAS_BUILD_NODE_VERSION": "20"
       }

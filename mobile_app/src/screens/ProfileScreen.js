@@ -62,11 +62,11 @@ export default function ProfileScreen({ navigation }) {
                     const response = await axios.get(`${ENDPOINTS.CONNECTIONS}?email=${parsedUser.email}`, { timeout: 5000 });
                     let connCount = response.data.count || 0;
 
-                    // Add local pending count
+                    // Add accepted local friends when the API is behind or unavailable.
                     try {
-                        const localPending = await AsyncStorage.getItem('pending_connections');
-                        if (localPending) {
-                            const list = JSON.parse(localPending);
+                        const localAccepted = await AsyncStorage.getItem('accepted_connections');
+                        if (localAccepted) {
+                            const list = JSON.parse(localAccepted);
                             connCount += list.length;
                         }
                     } catch (e) { }
@@ -86,12 +86,12 @@ export default function ProfileScreen({ navigation }) {
                 } catch (err) {
                     console.log('Error fetching connections:', err);
 
-                    // Even on error, show local count
+                    // Even on error, show local accepted friend count.
                     let localCount = 124; // Base demo count
                     try {
-                        const localPending = await AsyncStorage.getItem('pending_connections');
-                        if (localPending) {
-                            localCount += JSON.parse(localPending).length;
+                        const localAccepted = await AsyncStorage.getItem('accepted_connections');
+                        if (localAccepted) {
+                            localCount += JSON.parse(localAccepted).length;
                         }
                     } catch (e) { }
 

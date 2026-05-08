@@ -35,6 +35,13 @@ export default function UserProfileScreen({ navigation, route }) {
                     } else {
                         // Check local override
                         try {
+                            const localAccepted = await AsyncStorage.getItem('accepted_connections');
+                            if (localAccepted && JSON.parse(localAccepted).some(conn => conn.email === recipientEmail)) {
+                                setIsConnected(true);
+                                setConnectionStatus('accepted');
+                                return;
+                            }
+
                             const localPending = await AsyncStorage.getItem('pending_connections');
                             if (localPending && JSON.parse(localPending).includes(recipientEmail)) {
                                 setIsConnected(true);
@@ -46,6 +53,20 @@ export default function UserProfileScreen({ navigation, route }) {
             }
         } catch (error) {
             console.log('Error fetching connection data:', error);
+            try {
+                const localAccepted = await AsyncStorage.getItem('accepted_connections');
+                if (localAccepted && JSON.parse(localAccepted).some(conn => conn.email === recipientEmail)) {
+                    setIsConnected(true);
+                    setConnectionStatus('accepted');
+                    return;
+                }
+
+                const localPending = await AsyncStorage.getItem('pending_connections');
+                if (localPending && JSON.parse(localPending).includes(recipientEmail)) {
+                    setIsConnected(true);
+                    setConnectionStatus('pending');
+                }
+            } catch (e) { }
         } finally {
             setLoading(false);
         }
@@ -86,6 +107,26 @@ export default function UserProfileScreen({ navigation, route }) {
             Alert.alert('Success', `Connection request sent to ${user}!`);
         } catch (error) {
             console.log('Connect Error:', error);
+            const existingStatus = error?.response?.data?.status;
+            if (existingStatus === 'accepted') {
+                setIsConnected(true);
+                setConnectionStatus('accepted');
+                try {
+                    const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
+                    const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
+                    const friend = {
+                        email: recipientEmail,
+                        name: user || recipientEmail?.split('@')[0] || 'Connection',
+                        avatar,
+                        acceptedAt: new Date().toISOString()
+                    };
+                    await AsyncStorage.setItem('accepted_connections', JSON.stringify([friend, ...acceptedList.filter(item => item.email !== recipientEmail)]));
+                    await AsyncStorage.setItem('friend_list', JSON.stringify([friend, ...acceptedList.filter(item => item.email !== recipientEmail)]));
+                } catch (e) { }
+                Alert.alert('Added to network', `${user || 'This member'} is already in your network.`);
+                return;
+            }
+
             // Fallback for demo
             setIsConnected(true);
             setConnectionStatus('pending');
@@ -176,7 +217,7 @@ export default function UserProfileScreen({ navigation, route }) {
                         >
                             {isConnected ? <Check size={20} color="#4B184C" /> : <UserPlus size={20} color="#fff" />}
                             <Text style={[styles.btnText, isConnected && styles.connectedText]}>
-                                {isConnected ? (connectionStatus === 'pending' ? 'Request Sent' : 'Connected') : 'Connect'}
+                                {isConnected ? (connectionStatus === 'pending' ? 'Request Sent' : 'Added to network') : 'Connect'}
                             </Text>
                         </TouchableOpacity>
 

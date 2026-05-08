@@ -25,6 +25,7 @@ export default function FeedScreen({ navigation }) {
     const [hiddenPostIds, setHiddenPostIds] = useState([]);
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [sentRequests, setSentRequests] = useState(new Set());
+    const [acceptedConnections, setAcceptedConnections] = useState(new Set());
     const [currentUser, setCurrentUser] = useState(null);
 
     const fetchPosts = async (showLoading = true) => {
@@ -68,7 +69,46 @@ export default function FeedScreen({ navigation }) {
 
             const storedPending = await AsyncStorage.getItem('pending_connections');
             if (storedPending) setSentRequests(new Set(JSON.parse(storedPending)));
+
+            const storedAccepted = await AsyncStorage.getItem('accepted_connections');
+            if (storedAccepted) {
+                setAcceptedConnections(new Set(JSON.parse(storedAccepted).map(conn => conn.email)));
+            }
         } catch (e) { }
+    };
+
+    const persistPendingConnection = async (recipientEmail) => {
+        const storedPending = await AsyncStorage.getItem('pending_connections');
+        const pendingList = storedPending ? JSON.parse(storedPending) : [];
+        if (!pendingList.includes(recipientEmail)) {
+            pendingList.push(recipientEmail);
+            await AsyncStorage.setItem('pending_connections', JSON.stringify(pendingList));
+        }
+    };
+
+    const persistAcceptedConnection = async (recipientEmail, userName, avatar) => {
+        const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
+        const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
+        const friend = {
+            email: recipientEmail,
+            name: userName,
+            avatar,
+            acceptedAt: new Date().toISOString()
+        };
+        const nextAccepted = [friend, ...acceptedList.filter(item => item.email !== recipientEmail)];
+        await AsyncStorage.setItem('accepted_connections', JSON.stringify(nextAccepted));
+        await AsyncStorage.setItem('friend_list', JSON.stringify(nextAccepted));
+
+        const pendingRaw = await AsyncStorage.getItem('pending_connections');
+        const pendingList = pendingRaw ? JSON.parse(pendingRaw) : [];
+        await AsyncStorage.setItem('pending_connections', JSON.stringify(pendingList.filter(email => email !== recipientEmail)));
+
+        setAcceptedConnections(prev => new Set([...prev, recipientEmail]));
+        setSentRequests(prev => {
+            const next = new Set(prev);
+            next.delete(recipientEmail);
+            return next;
+        });
     };
 
     const onRefresh = () => {
@@ -208,7 +248,7 @@ export default function FeedScreen({ navigation }) {
 
     const handleQuickConnect = async (recipientEmail, userName) => {
         try {
-            if (sentRequests.has(recipientEmail)) return;
+            if (sentRequests.has(recipientEmail) || acceptedConnections.has(recipientEmail)) return;
 
             const userData = await AsyncStorage.getItem('user');
             if (!userData) {
@@ -223,18 +263,27 @@ export default function FeedScreen({ navigation }) {
             });
 
             // Add to LOCAL storage
-            const storedPending = await AsyncStorage.getItem('pending_connections');
-            const pendingList = storedPending ? JSON.parse(storedPending) : [];
-            if (!pendingList.includes(recipientEmail)) {
-                pendingList.push(recipientEmail);
-                await AsyncStorage.setItem('pending_connections', JSON.stringify(pendingList));
-            }
+            await persistPendingConnection(recipientEmail);
 
             setSentRequests(prev => new Set([...prev, recipientEmail]));
             Alert.alert('Success', `Connection request sent to ${userName}!`);
         } catch (error) {
             console.log('Connect error:', error);
+            const existingStatus = error?.response?.data?.status;
+            if (existingStatus === 'accepted') {
+                await persistAcceptedConnection(recipientEmail, userName);
+                Alert.alert('Added to network', `${userName} is already in your network.`);
+                return;
+            }
+            if (existingStatus === 'pending') {
+                await persistPendingConnection(recipientEmail);
+                setSentRequests(prev => new Set([...prev, recipientEmail]));
+                Alert.alert('Request Pending', `Connection request already sent to ${userName}.`);
+                return;
+            }
+
             // Fallback
+            await persistPendingConnection(recipientEmail);
             setSentRequests(prev => new Set([...prev, recipientEmail]));
             Alert.alert('Request Sent', `Connection request sent to ${userName}! (Demo Mode)`);
         }
@@ -270,6 +319,10 @@ export default function FeedScreen({ navigation }) {
                         </View>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recList}>
                             {recommendedPros.map(pro => (
+                                (() => {
+                                    const isAccepted = acceptedConnections.has(pro.email);
+                                    const isPending = sentRequests.has(pro.email);
+                                    return (
                                 <TouchableOpacity
                                     key={pro.id}
                                     style={styles.proCard}
@@ -285,22 +338,25 @@ export default function FeedScreen({ navigation }) {
                                     <Text style={styles.proRole} numberOfLines={1}>{pro.role}</Text>
                                     <TouchableOpacity
                                         activeOpacity={0.7}
-                                        style={[styles.followBtn, sentRequests.has(pro.email) && styles.sentBtn]}
+                                        style={[styles.followBtn, (isPending || isAccepted) && styles.sentBtn]}
+                                        disabled={isPending || isAccepted}
                                         onPress={(e) => {
                                             e.stopPropagation();
                                             handleQuickConnect(pro.email, pro.name);
                                         }}
                                     >
-                                        {sentRequests.has(pro.email) ? (
+                                        {(isPending || isAccepted) ? (
                                             <Check size={14} color="#4B184C" />
                                         ) : (
                                             <UserPlus size={14} color="#fff" />
                                         )}
-                                        <Text style={[styles.followText, sentRequests.has(pro.email) && styles.sentText]}>
-                                            {sentRequests.has(pro.email) ? 'Sent' : 'Connect'}
+                                        <Text numberOfLines={1} style={[styles.followText, (isPending || isAccepted) && styles.sentText]}>
+                                            {isAccepted ? 'Added to network' : isPending ? 'Sent' : 'Connect'}
                                         </Text>
                                     </TouchableOpacity>
                                 </TouchableOpacity>
+                                    );
+                                })()
                             ))}
                         </ScrollView>
                     </View>
@@ -369,16 +425,17 @@ export default function FeedScreen({ navigation }) {
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                                         {post.email !== currentUser?.email && (
                                             <TouchableOpacity
-                                                style={[styles.connectBtnSmall, sentRequests.has(post.email) && styles.sentBtnSmall]}
+                                                style={[styles.connectBtnSmall, (sentRequests.has(post.email) || acceptedConnections.has(post.email)) && styles.sentBtnSmall]}
+                                                disabled={sentRequests.has(post.email) || acceptedConnections.has(post.email)}
                                                 onPress={() => handleQuickConnect(post.email, post.user)}
                                             >
-                                                {sentRequests.has(post.email) ? (
+                                                {(sentRequests.has(post.email) || acceptedConnections.has(post.email)) ? (
                                                     <Check size={16} color="#4B184C" />
                                                 ) : (
                                                     <UserPlus size={16} color="#4B184C" />
                                                 )}
-                                                <Text style={styles.connectBtnText}>
-                                                    {sentRequests.has(post.email) ? 'Sent' : 'Connect'}
+                                                <Text numberOfLines={1} style={styles.connectBtnText}>
+                                                    {acceptedConnections.has(post.email) ? 'Added to network' : sentRequests.has(post.email) ? 'Sent' : 'Connect'}
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -461,12 +518,12 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 16, fontWeight: '800', color: '#1e293b' },
     viewAll: { color: '#4B184C', fontWeight: '700', fontSize: 13 },
     recList: { paddingLeft: 20, paddingRight: 10 },
-    proCard: { width: 140, backgroundColor: '#fff', padding: 15, borderRadius: 20, marginRight: 15, alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9', elevation: 2 },
+    proCard: { width: 170, backgroundColor: '#fff', padding: 15, borderRadius: 20, marginRight: 15, alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9', elevation: 2 },
     proAvatar: { width: 60, height: 60, borderRadius: 30, marginBottom: 10 },
     proName: { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
     proRole: { fontSize: 10, color: '#64748b', marginBottom: 12, textAlign: 'center' },
     followBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#4B184C', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-    followText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+    followText: { color: '#fff', fontSize: 12, fontWeight: '700', flexShrink: 1 },
     sentBtn: { backgroundColor: '#fdf4ff', borderWidth: 1, borderColor: '#fbcfe8' },
     sentText: { color: '#4B184C' },
 
@@ -483,8 +540,8 @@ const styles = StyleSheet.create({
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     actionNum: { color: '#64748b', fontSize: 14, fontWeight: '600' },
 
-    connectBtnSmall: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 15, backgroundColor: '#fdf4ff', borderWidth: 1, borderColor: '#fbcfe8' },
-    connectBtnText: { fontSize: 12, fontWeight: '700', color: '#4B184C' },
+    connectBtnSmall: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 15, backgroundColor: '#fdf4ff', borderWidth: 1, borderColor: '#fbcfe8', maxWidth: 160 },
+    connectBtnText: { fontSize: 12, fontWeight: '700', color: '#4B184C', flexShrink: 1 },
     sentBtnSmall: { backgroundColor: '#fdf2f8', borderColor: '#fbcfe8' },
 
     // Edit Section
