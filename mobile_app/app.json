@@ -3,7 +3,7 @@
     "name": "Trills",
     "slug": "trills",
     "scheme": "trillsauth",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,11 +17,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trills.socialvibe"
+      "bundleIdentifier": "com.trills.socialvibe",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "in.trills.socialvibe",
-      "versionCode": 301,
+      "versionCode": 326,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -73,18 +76,28 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "packagingOptions": {
-              "jniLibs": {
-                "useLegacyPackaging": false
-              }
-            }
+            "useLegacyPackaging": false
           },
           "ios": {
             "deploymentTarget": "15.1"
           }
         }
-      ]
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Trills to use Face ID to unlock your account."
+        }
+      ],
+      "./plugins/withAndroid16KbPageSize",
+      "expo-web-browser"
     ],
-    "owner": "sreeni90s-organization"
+    "owner": "sreeni90s-organization",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/59546cb0-3554-45f5-bdc7-66d3fe1f95dd"
+    }
   }
 }

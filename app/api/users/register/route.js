@@ -83,6 +83,8 @@ export async function POST(request) {
             image: user.image,
             verified: user.verified,
             role: user.role || 'user',
+            points: user.points ?? 0,
+            tier: user.tier || 'Silver',
             authProvider: user.authProvider,
             createdAt: user.createdAt
         };

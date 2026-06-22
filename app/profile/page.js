@@ -275,6 +275,11 @@ function ProfileContent() {
     };
 
     const startVerification = async () => {
+        showToast('Identity verification is temporarily unavailable while secure face and liveness verification is being configured.');
+        setIsVerifying(false);
+        setVerificationStep(0);
+        return;
+
         setIsVerifying(true);
         setVerificationStep(1);
 
@@ -867,7 +872,7 @@ function ProfileContent() {
                                     <ShieldCheck size={40} color="var(--primary)" />
                                 </div>
                                 <h2 className="title-font" style={{ marginBottom: '16px' }}>Identity Verification</h2>
-                                <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>To maintain community trust, we use AI to verify that your profile picture matches your real identity. This takes less than 30 seconds.</p>
+                                <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>Identity verification is temporarily unavailable while secure face and liveness verification is being configured.</p>
                                 <div style={{ background: 'rgba(75, 24, 76, 0.05)', padding: '20px', borderRadius: '16px', textAlign: 'left', marginBottom: '30px' }}>
                                     <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
                                         <CheckCircle size={18} color="var(--primary)" />
@@ -883,8 +888,7 @@ function ProfileContent() {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '15px' }}>
-                                    <button onClick={startVerification} className="btn-primary" style={{ flex: 1 }}>Start AI Scan</button>
-                                    <button onClick={cancelVerification} className="btn-outline" style={{ flex: 1 }}>Maybe Later</button>
+                                    <button onClick={cancelVerification} className="btn-primary" style={{ flex: 1 }}>Close</button>
                                 </div>
                             </div>
                         ) : verificationStep === 1 ? (

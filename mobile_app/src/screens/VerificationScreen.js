@@ -30,6 +30,12 @@ export default function VerificationScreen({ navigation }) {
     }, []);
 
     const startScan = async () => {
+        Alert.alert(
+            'Verification unavailable',
+            'To protect members, Trills will not issue a verified badge until secure face and liveness verification is available.'
+        );
+        return;
+
         // 1. Camera Permissions
         if (!permission || !permission.granted) {
             const result = await requestPermission();
@@ -132,8 +138,7 @@ export default function VerificationScreen({ navigation }) {
                     </View>
                     <Text style={styles.title}>Verify Your Identity</Text>
                     <Text style={styles.subtitle}>
-                        Trills uses AI to verify that your profile picture matches your real identity.
-                        This ensures a safe and trusted community for everyone.
+                        Identity verification is temporarily unavailable while secure face and liveness checks are being configured.
                     </Text>
 
                     <View style={styles.benefits}>
@@ -152,7 +157,7 @@ export default function VerificationScreen({ navigation }) {
                     </View>
 
                     <TouchableOpacity style={styles.primaryBtn} onPress={startScan}>
-                        <Text style={styles.primaryBtnText}>Start AI Face Scan</Text>
+                        <Text style={styles.primaryBtnText}>Verification unavailable</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
                         <Text style={styles.secondaryBtnText}>Maybe Later</Text>

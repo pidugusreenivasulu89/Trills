@@ -6,6 +6,93 @@ import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
+const FALLBACK_AVATAR = 'https://i.pravatar.cc/150?u=trills-member';
+
+const DEFAULT_POSTS = [
+    { id: 'default1', type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: 'https://i.pravatar.cc/150?u=alex', content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10!', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
+    { id: 'default2', type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: 'https://i.pravatar.cc/150?u=sophia', content: 'Found this amazing hidden gem for brunch!', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
+];
+
+const safeText = (value, fallback = '') => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return fallback;
+};
+
+const safeUrl = (value, fallback = '') => {
+    const text = safeText(value).trim();
+    return /^https?:\/\//i.test(text) ? text : fallback;
+};
+
+const safeJsonParse = (value, fallback) => {
+    try {
+        return value ? JSON.parse(value) : fallback;
+    } catch (error) {
+        return fallback;
+    }
+};
+
+const getAuthorName = (post) => {
+    if (typeof post?.user === 'string') return post.user;
+    if (post?.user && typeof post.user === 'object') {
+        return safeText(post.user.name || post.user.fullName || post.user.email, 'Trills Member');
+    }
+    return safeText(post?.name || post?.author, 'Trills Member');
+};
+
+const getAuthorEmail = (post, name) => {
+    if (typeof post?.email === 'string') return post.email;
+    if (post?.user && typeof post.user === 'object' && typeof post.user.email === 'string') return post.user.email;
+    return `${name.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'member'}@trills.com`;
+};
+
+const getCommentsCount = (comments) => {
+    if (Array.isArray(comments)) return comments.length;
+    const count = Number(comments);
+    return Number.isFinite(count) && count > 0 ? count : 0;
+};
+
+const normalizePost = (rawPost, index) => {
+    const post = rawPost && typeof rawPost === 'object' ? rawPost : {};
+    const user = getAuthorName(post);
+    const email = getAuthorEmail(post, user);
+    const likedBy = Array.isArray(post.likedBy) ? post.likedBy.filter(item => typeof item === 'string') : [];
+    const type = post.type === 'promo' ? 'promo' : 'post';
+
+    return {
+        ...post,
+        id: safeText(post.id || post._id, `post-${index}`),
+        _id: safeText(post._id || post.id, ''),
+        type,
+        user,
+        email,
+        avatar: safeUrl(post.avatar || post.user?.avatar || post.user?.image, `${FALLBACK_AVATAR}-${encodeURIComponent(email)}`),
+        content: safeText(post.content || post.description, ''),
+        title: safeText(post.title, 'Featured offer'),
+        description: safeText(post.description || post.content, ''),
+        discount: safeText(post.discount, 'New'),
+        image: safeUrl(post.image, ''),
+        likes: Math.max(0, Number(post.likes) || 0),
+        likedBy,
+        liked: Boolean(post.liked),
+        comments: getCommentsCount(post.comments),
+        commentItems: Array.isArray(post.comments) ? post.comments : [],
+        verified: Boolean(post.verified || post.user?.verified),
+        createdAt: safeText(post.createdAt, ''),
+    };
+};
+
+const normalizePosts = (data) => {
+    if (!Array.isArray(data)) return DEFAULT_POSTS;
+    const normalized = data.map(normalizePost).filter(post => post.content || post.type === 'promo');
+    return normalized.length > 0 ? normalized : DEFAULT_POSTS;
+};
+
+const formatPostDate = (value) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Just now' : date.toLocaleDateString();
+};
+
 export default function FeedScreen({ navigation }) {
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +119,8 @@ export default function FeedScreen({ navigation }) {
         try {
             if (showLoading) setIsLoading(true);
             const response = await axios.get(ENDPOINTS.POSTS);
-            if (response.data) {
+            setPosts(normalizePosts(response.data));
+            if (Array.isArray(response.data) && response.data.__legacyFallback) {
                 // If the backend is empty, prepend some default ones for UI demonstration
                 const fetchedPosts = response.data;
                 if (fetchedPosts.length === 0) {
@@ -46,6 +134,7 @@ export default function FeedScreen({ navigation }) {
             }
         } catch (error) {
             console.error('Error fetching posts:', error);
+            setPosts(currentPosts => currentPosts.length > 0 ? currentPosts : DEFAULT_POSTS);
         } finally {
             setIsLoading(false);
             setIsRefreshing(false);
@@ -62,24 +151,35 @@ export default function FeedScreen({ navigation }) {
     const loadUserData = async () => {
         try {
             const storedBlocked = await AsyncStorage.getItem('blocked_users');
-            if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+            if (storedBlocked) {
+                const parsedBlocked = safeJsonParse(storedBlocked, []);
+                setBlockedUsers(Array.isArray(parsedBlocked) ? parsedBlocked.filter(item => typeof item === 'string') : []);
+            }
 
             const storedUser = await AsyncStorage.getItem('user');
-            if (storedUser) setCurrentUser(JSON.parse(storedUser));
+            if (storedUser) {
+                const parsedUser = safeJsonParse(storedUser, null);
+                setCurrentUser(parsedUser && typeof parsedUser === 'object' ? parsedUser : null);
+            }
 
             const storedPending = await AsyncStorage.getItem('pending_connections');
-            if (storedPending) setSentRequests(new Set(JSON.parse(storedPending)));
+            if (storedPending) {
+                const parsedPending = safeJsonParse(storedPending, []);
+                setSentRequests(new Set(Array.isArray(parsedPending) ? parsedPending.filter(item => typeof item === 'string') : []));
+            }
 
             const storedAccepted = await AsyncStorage.getItem('accepted_connections');
             if (storedAccepted) {
-                setAcceptedConnections(new Set(JSON.parse(storedAccepted).map(conn => conn.email)));
+                const parsedAccepted = safeJsonParse(storedAccepted, []);
+                setAcceptedConnections(new Set(Array.isArray(parsedAccepted) ? parsedAccepted.map(conn => conn?.email).filter(Boolean) : []));
             }
         } catch (e) { }
     };
 
     const persistPendingConnection = async (recipientEmail) => {
         const storedPending = await AsyncStorage.getItem('pending_connections');
-        const pendingList = storedPending ? JSON.parse(storedPending) : [];
+        const parsedPending = safeJsonParse(storedPending, []);
+        const pendingList = Array.isArray(parsedPending) ? parsedPending : [];
         if (!pendingList.includes(recipientEmail)) {
             pendingList.push(recipientEmail);
             await AsyncStorage.setItem('pending_connections', JSON.stringify(pendingList));
@@ -88,19 +188,20 @@ export default function FeedScreen({ navigation }) {
 
     const persistAcceptedConnection = async (recipientEmail, userName, avatar) => {
         const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
-        const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
-        const friend = {
+        const parsedAccepted = safeJsonParse(acceptedRaw, []);
+        const acceptedList = Array.isArray(parsedAccepted) ? parsedAccepted : [];
+        const connection = {
             email: recipientEmail,
             name: userName,
             avatar,
             acceptedAt: new Date().toISOString()
         };
-        const nextAccepted = [friend, ...acceptedList.filter(item => item.email !== recipientEmail)];
+        const nextAccepted = [connection, ...acceptedList.filter(item => item.email !== recipientEmail)];
         await AsyncStorage.setItem('accepted_connections', JSON.stringify(nextAccepted));
-        await AsyncStorage.setItem('friend_list', JSON.stringify(nextAccepted));
 
         const pendingRaw = await AsyncStorage.getItem('pending_connections');
-        const pendingList = pendingRaw ? JSON.parse(pendingRaw) : [];
+        const parsedPending = safeJsonParse(pendingRaw, []);
+        const pendingList = Array.isArray(parsedPending) ? parsedPending : [];
         await AsyncStorage.setItem('pending_connections', JSON.stringify(pendingList.filter(email => email !== recipientEmail)));
 
         setAcceptedConnections(prev => new Set([...prev, recipientEmail]));
@@ -117,26 +218,45 @@ export default function FeedScreen({ navigation }) {
     };
 
     const handleLike = async (id) => {
-        setPosts(posts.map(p => {
+        setPosts(currentPosts => currentPosts.map(p => {
             if (p._id === id || p.id === id) {
-                const isLiked = p.likedBy?.includes(currentUser?.email) || p.liked;
+                const likedBy = Array.isArray(p.likedBy) ? p.likedBy : [];
+                const isLiked = likedBy.includes(currentUser?.email) || p.liked;
                 return {
                     ...p,
                     liked: !isLiked,
-                    likes: isLiked ? p.likes - 1 : p.likes + 1,
+                    likes: Math.max(0, (Number(p.likes) || 0) + (isLiked ? -1 : 1)),
                     likedBy: isLiked
-                        ? (p.likedBy?.filter(e => e !== currentUser?.email) || [])
-                        : [...(p.likedBy || []), currentUser?.email]
+                        ? likedBy.filter(e => e !== currentUser?.email)
+                        : currentUser?.email ? [...likedBy, currentUser.email] : likedBy
                 };
             }
             return p;
         }));
-        // Optional: Call update API
+        try {
+            if (!currentUser?.email) return;
+            const response = await axios.patch(`${ENDPOINTS.POSTS}/${id}`, {
+                action: 'like',
+                user: {
+                    email: currentUser.email,
+                    name: currentUser.name,
+                    avatar: currentUser.avatar || currentUser.image,
+                    verified: currentUser.verified,
+                }
+            }, { timeout: 8000 });
+
+            if (response.data) {
+                const updated = normalizePost(response.data, 0);
+                setPosts(currentPosts => currentPosts.map(p => ((p._id || p.id) === id ? updated : p)));
+            }
+        } catch (error) {
+            console.log('Unable to persist like:', error?.response?.data || error?.message || error);
+        }
     };
 
     const handleShare = async (content) => {
         try {
-            await Share.share({ message: content });
+            await Share.share({ message: safeText(content, 'Shared from Trills') });
         } catch (error) {
             console.log(error.message);
         }
@@ -255,7 +375,11 @@ export default function FeedScreen({ navigation }) {
                 Alert.alert('Login Required', 'Please login to connect.');
                 return;
             }
-            const requester = JSON.parse(userData);
+            const requester = safeJsonParse(userData, null);
+            if (!requester?.email) {
+                Alert.alert('Login Required', 'Please login again to connect.');
+                return;
+            }
 
             await axios.post(ENDPOINTS.CONNECTIONS, {
                 requesterEmail: requester.email,
@@ -272,7 +396,7 @@ export default function FeedScreen({ navigation }) {
             const existingStatus = error?.response?.data?.status;
             if (existingStatus === 'accepted') {
                 await persistAcceptedConnection(recipientEmail, userName);
-                Alert.alert('Added to network', `${userName} is already in your network.`);
+                Alert.alert('Already connected', `${userName} is already in your connections.`);
                 return;
             }
             if (existingStatus === 'pending') {
@@ -282,14 +406,11 @@ export default function FeedScreen({ navigation }) {
                 return;
             }
 
-            // Fallback
-            await persistPendingConnection(recipientEmail);
-            setSentRequests(prev => new Set([...prev, recipientEmail]));
-            Alert.alert('Request Sent', `Connection request sent to ${userName}! (Demo Mode)`);
+            Alert.alert('Could not send request', error?.response?.data?.error || 'This profile is not available yet. Please try again later.');
         }
     };
 
-    const visiblePosts = posts.filter(p => !hiddenPostIds.includes(p._id || p.id) && !blockedUsers.includes(p.user));
+    const visiblePosts = normalizePosts(posts).filter(p => !hiddenPostIds.includes(p._id || p.id) && !blockedUsers.includes(p.user));
 
     return (
         <SafeAreaView style={styles.container}>
@@ -351,7 +472,7 @@ export default function FeedScreen({ navigation }) {
                                             <UserPlus size={14} color="#fff" />
                                         )}
                                         <Text numberOfLines={1} style={[styles.followText, (isPending || isAccepted) && styles.sentText]}>
-                                            {isAccepted ? 'Added to network' : isPending ? 'Sent' : 'Connect'}
+                                            {isAccepted ? 'Connected' : isPending ? 'Sent' : 'Connect'}
                                         </Text>
                                     </TouchableOpacity>
                                 </TouchableOpacity>
@@ -379,7 +500,13 @@ export default function FeedScreen({ navigation }) {
                                         <Zap size={14} color="#fff" fill="#fff" />
                                         <Text style={styles.promoBadgeText}>Promoted</Text>
                                     </View>
-                                    <Image source={{ uri: post.image }} style={styles.promoImage} />
+                                    {post.image ? (
+                                        <Image source={{ uri: post.image }} style={styles.promoImage} />
+                                    ) : (
+                                        <View style={[styles.promoImage, styles.promoImageFallback]}>
+                                            <Zap size={34} color="#4B184C" />
+                                        </View>
+                                    )}
                                     <View style={styles.promoContent}>
                                         <View style={styles.promoHeader}>
                                             <Text style={styles.promoTitle}>{post.title}</Text>
@@ -417,7 +544,7 @@ export default function FeedScreen({ navigation }) {
                                                 )}
                                             </View>
                                             <Text style={styles.timestamp}>
-                                                {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Just now'}
+                                                {post.createdAt ? formatPostDate(post.createdAt) : 'Just now'}
                                             </Text>
                                         </View>
                                     </TouchableOpacity>
@@ -435,7 +562,7 @@ export default function FeedScreen({ navigation }) {
                                                     <UserPlus size={16} color="#4B184C" />
                                                 )}
                                                 <Text numberOfLines={1} style={styles.connectBtnText}>
-                                                    {acceptedConnections.has(post.email) ? 'Added to network' : sentRequests.has(post.email) ? 'Sent' : 'Connect'}
+                                                    {acceptedConnections.has(post.email) ? 'Connected' : sentRequests.has(post.email) ? 'Sent' : 'Connect'}
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -475,7 +602,7 @@ export default function FeedScreen({ navigation }) {
                                         <Text style={[styles.actionNum, isLiked && { color: "#4B184C" }]}>{post.likes || 0}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
-                                        onPress={() => navigation.navigate('Comments', { postId: pid, user: post.user, content: post.content })}
+                                        onPress={() => navigation.navigate('Comments', { postId: pid, user: post.user, content: post.content, comments: post.commentItems })}
                                         style={styles.actionBtn}
                                     >
                                         <MessageCircle size={20} color={post.comments > 0 ? "#4B184C" : "#64748b"} fill={post.comments > 0 ? "rgba(75, 24, 76, 0.1)" : "none"} />
@@ -496,8 +623,10 @@ export default function FeedScreen({ navigation }) {
             <TouchableOpacity
                 style={styles.fab}
                 onPress={() => navigation.navigate('CreatePost')}
+                accessibilityLabel="Create a post"
             >
-                <Plus size={30} color="#fff" />
+                <Plus size={22} color="#fff" />
+                <Text style={styles.fabText}>Post</Text>
             </TouchableOpacity>
         </SafeAreaView>
     );
@@ -558,6 +687,7 @@ const styles = StyleSheet.create({
     promoBadge: { position: 'absolute', top: 15, left: 15, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(75, 24, 76, 0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 30 },
     promoBadgeText: { color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
     promoImage: { width: '100%', height: 220 },
+    promoImageFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdf4ff' },
     promoContent: { padding: 20 },
     promoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     promoTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
@@ -570,12 +700,14 @@ const styles = StyleSheet.create({
     // FAB
     fab: {
         position: 'absolute',
-        bottom: 25,
-        right: 25,
+        bottom: 92,
+        right: 20,
         backgroundColor: '#4B184C',
-        width: 60,
+        minWidth: 88,
         height: 60,
         borderRadius: 30,
+        flexDirection: 'row',
+        gap: 6,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 8,
@@ -583,5 +715,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
-    }
+    },
+    fabText: { color: '#fff', fontSize: 15, fontWeight: '800' }
 });

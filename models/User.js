@@ -9,9 +9,15 @@ const UserSchema = new mongoose.Schema({
     otp: String, // Temporary OTP
     otpExpires: Date,
     image: String,
+    photos: [String],
     verified: { type: Boolean, default: false },
     designation: String,
     location: String,
+    profileLocation: {
+        latitude: Number,
+        longitude: Number,
+        timestamp: Date
+    },
     interests: [String],
     faceImage: String,
     verificationLocation: {

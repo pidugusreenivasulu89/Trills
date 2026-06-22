@@ -58,24 +58,10 @@ export async function GET(request) {
             }, { headers: corsHeaders });
         }
 
-        // Fetch only verified users to see the face data and locations
-        const verifiedUsers = await User.find({ verified: true }).select('name email faceImage verificationLocation verified');
-
-        return NextResponse.json({
-            success: true,
-            count: verifiedUsers.length,
-            users: verifiedUsers.map(u => ({
-                name: u.name,
-                email: u.email,
-                isVerified: u.verified,
-                location: u.verificationLocation ?
-                    `https://www.google.com/maps?q=${u.verificationLocation.latitude},${u.verificationLocation.longitude}` :
-                    'No location captured',
-                capturedAt: u.verificationLocation?.timestamp || 'N/A',
-                // Truncate photo for readability in JSON
-                photoPreview: u.faceImage ? u.faceImage.substring(0, 50) + '...' : 'No photo'
-            }))
-        }, { headers: corsHeaders });
+        return NextResponse.json(
+            { error: 'Email is required' },
+            { status: 400, headers: corsHeaders }
+        );
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders });
     }

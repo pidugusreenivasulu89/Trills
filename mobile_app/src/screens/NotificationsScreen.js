@@ -17,10 +17,32 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ENDPOINTS } from '../api/config';
 
+const formatNotificationTime = (value) => {
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) return 'Just now';
+    const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
+    if (minutes < 10080) return `${Math.floor(minutes / 1440)}d`;
+    return date.toLocaleDateString();
+};
+
 export default function NotificationsScreen({ navigation }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    const markAllRead = async (items = notifications) => {
+        const userData = await AsyncStorage.getItem('user');
+        if (!userData || !items.some(item => !item.read)) return;
+        const user = JSON.parse(userData);
+        await axios.post(ENDPOINTS.NOTIFICATIONS, {
+            action: 'markRead',
+            email: user.email,
+        }, { timeout: 8000 });
+        setNotifications(current => current.map(item => ({ ...item, read: true })));
+    };
 
     const fetchNotifications = async () => {
         try {
@@ -32,27 +54,19 @@ export default function NotificationsScreen({ navigation }) {
             const response = await axios.get(url, { timeout: 8000 });
             console.log('Notifications received:', response.data.length);
 
-            // Merge with local sent confirmations
-            let allNotifs = response.data;
-            try {
-                const localPending = await AsyncStorage.getItem('pending_connections');
-                if (localPending) {
-                    const pendingList = JSON.parse(localPending);
-                    const localNotifs = pendingList.map((email, idx) => ({
-                        id: `local_${idx}`,
-                        type: 'friend_request',
-                        userName: email.split('@')[0],
-                        content: `You sent a connection request to ${email}.`,
-                        timestamp: 'Just now',
-                        read: true,
-                        avatar: `https://i.pravatar.cc/150?u=${email}`,
-                        local: true
-                    }));
-                    allNotifs = [...localNotifs, ...allNotifs];
-                }
-            } catch (e) { }
+            const seen = new Set();
+            const allNotifs = Array.isArray(response.data) ? response.data.filter(item => {
+                const key = item._id || `${item.type}-${item.senderEmail || ''}-${item.content || ''}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            }) : [];
 
             setNotifications(allNotifs);
+            // Viewing the inbox acknowledges its current notifications.
+            if (allNotifs.some(item => !item.read)) {
+                markAllRead(allNotifs).catch(error => console.log('Unable to mark notifications read:', error?.message));
+            }
         } catch (error) {
             console.error('Error fetching notifications:', error);
             // On error, try to at least show local ones
@@ -91,25 +105,24 @@ export default function NotificationsScreen({ navigation }) {
         fetchNotifications();
     }, []);
 
-    const addAcceptedConnection = async (connection) => {
+    const addAcceptedConnection = async (acceptedRequest) => {
         const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
         const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
-        const friend = {
-            email: connection.email,
-            name: connection.name || connection.email?.split('@')[0] || 'Connection',
-            avatar: connection.avatar,
+        const connection = {
+            email: acceptedRequest.email,
+            name: acceptedRequest.name || acceptedRequest.email?.split('@')[0] || 'Connection',
+            avatar: acceptedRequest.avatar,
             acceptedAt: new Date().toISOString()
         };
 
-        const withoutDuplicate = acceptedList.filter(item => item.email !== friend.email);
-        await AsyncStorage.setItem('accepted_connections', JSON.stringify([friend, ...withoutDuplicate]));
-        await AsyncStorage.setItem('friend_list', JSON.stringify([friend, ...withoutDuplicate]));
+        const withoutDuplicate = acceptedList.filter(item => item.email !== connection.email);
+        await AsyncStorage.setItem('accepted_connections', JSON.stringify([connection, ...withoutDuplicate]));
 
         const pendingRaw = await AsyncStorage.getItem('pending_connections');
         const pendingList = pendingRaw ? JSON.parse(pendingRaw) : [];
         await AsyncStorage.setItem(
             'pending_connections',
-            JSON.stringify(pendingList.filter(email => email !== friend.email))
+            JSON.stringify(pendingList.filter(email => email !== connection.email))
         );
     };
 
@@ -122,7 +135,10 @@ export default function NotificationsScreen({ navigation }) {
             case 'venue':
                 return <Calendar color="#4B184C" size={22} />;
             case 'accepted':
+            case 'connection_accepted':
                 return <CheckCircle color="#10B981" size={22} />;
+            case 'connection_declined':
+                return <Bell color="#64748B" size={22} />;
             case 'crush':
             case 'heart':
                 return <Heart color="#E11D48" size={22} fill="#E11D48" />;
@@ -162,8 +178,8 @@ export default function NotificationsScreen({ navigation }) {
                         ? {
                             ...n,
                             read: true,
-                            type: status === 'accepted' ? 'accepted' : n.type,
-                            content: status === 'accepted' ? 'Added to network.' : 'Connection request declined.'
+                            type: status === 'accepted' ? 'connection_accepted' : 'connection_declined',
+                            content: status === 'accepted' ? 'Connection added.' : 'Connection request declined.'
                         }
                         : n
                 ));
@@ -190,7 +206,7 @@ export default function NotificationsScreen({ navigation }) {
             <View style={styles.content}>
                 <View style={styles.notifHeader}>
                     <Text style={styles.userName}>{item.userName || 'System'}</Text>
-                    <Text style={styles.time}>{item.timestamp || 'Just now'}</Text>
+                    <Text style={styles.time}>{formatNotificationTime(item.timestamp)}</Text>
                 </View>
                 <Text style={styles.notifContent} numberOfLines={2}>
                     {item.content}
@@ -232,7 +248,12 @@ export default function NotificationsScreen({ navigation }) {
                     <Text style={styles.headerTitle}>Inbox</Text>
                     <Text style={styles.headerSubtitle}>Stay updated on your connections</Text>
                 </View>
-                <TouchableOpacity style={styles.clearBtn}>
+                <TouchableOpacity
+                    style={[styles.clearBtn, !notifications.some(item => !item.read) && styles.clearBtnDisabled]}
+                    onPress={() => markAllRead().catch(error => console.log('Unable to mark notifications read:', error?.message))}
+                    disabled={!notifications.some(item => !item.read)}
+                    accessibilityLabel="Mark all notifications as read"
+                >
                     <Trash2 color="#64748B" size={20} />
                 </TouchableOpacity>
             </View>
@@ -387,6 +408,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    clearBtnDisabled: { opacity: 0.45 },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',

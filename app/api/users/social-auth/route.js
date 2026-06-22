@@ -28,7 +28,7 @@ export async function POST(request) {
 
         if (!user) {
             // Generate a unique username from email
-            let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-0]/g, '');
+            let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
             let username = baseUsername;
             let counter = 1;
 
@@ -61,10 +61,17 @@ export async function POST(request) {
             username: user.username,
             email: user.email,
             image: user.image,
+            avatar: user.image,
+            photos: user.photos || [],
             verified: user.verified,
             designation: user.designation,
             location: user.location,
+            profileLocation: user.profileLocation,
+            bio: user.bio,
+            isPrivate: user.isPrivate || false,
             role: user.role || 'user',
+            points: user.points ?? 0,
+            tier: user.tier || 'Silver',
             createdAt: user.createdAt
         };
 

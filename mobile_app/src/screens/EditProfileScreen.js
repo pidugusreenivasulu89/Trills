@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
-import { Camera, User, Briefcase, MapPin, AlignLeft, Check } from 'lucide-react-native';
+import { Camera, User, Briefcase, MapPin, AlignLeft, LocateFixed, Plus, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { ENDPOINTS } from '../api/config';
 import { Alert } from 'react-native';
+import { DESIGNATION_OPTIONS, saveUserSession } from '../utils/profileSession';
 
-export default function EditProfileScreen({ navigation }) {
+export default function EditProfileScreen({ navigation, route }) {
+    const isRequired = route?.params?.required;
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
     const [name, setName] = useState('');
@@ -14,6 +18,9 @@ export default function EditProfileScreen({ navigation }) {
     const [location, setLocation] = useState('');
     const [bio, setBio] = useState('');
     const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?u=me');
+    const [photos, setPhotos] = useState([]);
+    const [profileLocation, setProfileLocation] = useState(null);
+    const [locating, setLocating] = useState(false);
 
     React.useEffect(() => {
         const loadUser = async () => {
@@ -28,6 +35,8 @@ export default function EditProfileScreen({ navigation }) {
                     setBio(parsed.bio || '');
                     // Normalize avatar
                     setAvatar(parsed.avatar || parsed.image || 'https://i.pravatar.cc/150?u=me');
+                    setPhotos(parsed.photos || []);
+                    setProfileLocation(parsed.profileLocation || null);
                 }
             } catch (e) {
                 console.log('Load user error:', e);
@@ -36,9 +45,45 @@ export default function EditProfileScreen({ navigation }) {
         loadUser();
     }, []);
 
+    const selectImage = async (forAvatar = false) => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert('Photo access needed', 'Allow photo access to choose profile pictures.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: forAvatar, aspect: forAvatar ? [1, 1] : undefined, quality: 0.7, base64: true });
+        if (result.canceled) return;
+        const asset = result.assets[0];
+        const uri = asset.base64 ? `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}` : asset.uri;
+        if (forAvatar) setAvatar(uri); else setPhotos(current => [...current, uri].slice(0, 9));
+    };
+
+    const useCurrentLocation = async () => {
+        setLocating(true);
+        try {
+            const permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.status !== 'granted') {
+                Alert.alert('Location permission needed', 'Location helps Trills show relevant venues and connections near you. You can also enter your city manually.');
+                return;
+            }
+            const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const [address] = await Location.reverseGeocodeAsync(position.coords);
+            const label = [address?.city || address?.district, address?.region, address?.country].filter(Boolean).join(', ');
+            setLocation(label || `${position.coords.latitude.toFixed(3)}, ${position.coords.longitude.toFixed(3)}`);
+            setProfileLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude, timestamp: new Date().toISOString() });
+        } catch (error) {
+            Alert.alert('Location unavailable', 'We could not detect your location. Please enter your city manually.');
+        } finally { setLocating(false); }
+    };
+
     const handleSave = async () => {
         if (!user?.email) {
             Alert.alert('Error', 'User session not found. Please log in again.');
+            return;
+        }
+
+        if (!name.trim() || !designation.trim() || !location.trim()) {
+            Alert.alert('Complete your profile', 'Please add your name, designation, and location before continuing.');
             return;
         }
 
@@ -46,12 +91,14 @@ export default function EditProfileScreen({ navigation }) {
         try {
             const updateData = {
                 email: user.email,
-                name,
-                designation,
-                location,
-                bio,
+                name: name.trim(),
+                designation: designation.trim(),
+                location: location.trim(),
+                bio: bio.trim(),
                 avatar,
                 image: avatar // Keep consistent
+                , photos,
+                profileLocation
             };
 
             const response = await axios.patch(ENDPOINTS.PROFILE_UPDATE, updateData, {
@@ -59,12 +106,10 @@ export default function EditProfileScreen({ navigation }) {
             });
 
             if (response.data.success) {
-                // Update local storage
-                const updatedUser = { ...user, ...updateData };
-                await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+                await saveUserSession({ ...user, ...updateData, ...(response.data.user || {}) });
 
                 Alert.alert('Success', 'Profile updated successfully! ✨', [
-                    { text: 'OK', onPress: () => navigation.goBack() }
+                    { text: 'OK', onPress: () => isRequired ? navigation.replace('MainTabs') : navigation.goBack() }
                 ]);
             } else {
                 Alert.alert('Update Failed', response.data.error || 'Could not sync with database.');
@@ -80,10 +125,10 @@ export default function EditProfileScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.cancelText}>Cancel</Text>
+                <TouchableOpacity onPress={() => isRequired ? null : navigation.goBack()} disabled={isRequired}>
+                    <Text style={[styles.cancelText, isRequired && styles.disabledText]}>{isRequired ? 'Required' : 'Cancel'}</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Edit Profile</Text>
+                <Text style={styles.title}>{isRequired ? 'Complete Profile' : 'Edit Profile'}</Text>
                 <TouchableOpacity onPress={handleSave} disabled={loading}>
                     {loading ? <ActivityIndicator size="small" color="#4B184C" /> : <Text style={styles.saveText}>Save</Text>}
                 </TouchableOpacity>
@@ -92,10 +137,18 @@ export default function EditProfileScreen({ navigation }) {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.avatarSection}>
                     <Image source={{ uri: avatar }} style={styles.avatar} />
-                    <TouchableOpacity style={styles.changePicBtn}>
+                    <TouchableOpacity style={styles.changePicBtn} onPress={() => selectImage(true)}>
                         <Camera size={16} color="#fff" />
                         <Text style={styles.changePicText}>Change Photo</Text>
                     </TouchableOpacity>
+                </View>
+
+                <View style={styles.gallerySection}>
+                    <View style={styles.galleryHeader}><Text style={styles.label}>Profile photos</Text><Text style={styles.galleryHint}>Visible to accepted connections</Text></View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <TouchableOpacity style={styles.addPhoto} onPress={() => selectImage(false)}><Plus size={24} color="#4B184C" /><Text style={styles.addPhotoText}>Add</Text></TouchableOpacity>
+                        {photos.map((photo, index) => <View key={`${photo.slice(0, 20)}-${index}`} style={styles.photoWrap}><Image source={{ uri: photo }} style={styles.galleryPhoto} /><TouchableOpacity style={styles.removePhoto} onPress={() => setPhotos(items => items.filter((_, itemIndex) => itemIndex !== index))}><X size={13} color="#fff" /></TouchableOpacity></View>)}
+                    </ScrollView>
                 </View>
 
                 <View style={styles.form}>
@@ -114,13 +167,24 @@ export default function EditProfileScreen({ navigation }) {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Designation</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.designationList}>
+                            {DESIGNATION_OPTIONS.map(option => (
+                                <TouchableOpacity
+                                    key={option}
+                                    style={[styles.designationChip, designation === option && styles.designationChipActive]}
+                                    onPress={() => setDesignation(option)}
+                                >
+                                    <Text style={[styles.designationChipText, designation === option && styles.designationChipTextActive]}>{option}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
                         <View style={styles.inputWrapper}>
                             <Briefcase size={18} color="#94a3b8" style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
                                 value={designation}
                                 onChangeText={setDesignation}
-                                placeholder="e.g. Product Designer"
+                                placeholder="Choose or type your designation"
                             />
                         </View>
                     </View>
@@ -136,6 +200,11 @@ export default function EditProfileScreen({ navigation }) {
                                 placeholder="e.g. New York, NY"
                             />
                         </View>
+                        <TouchableOpacity style={styles.locationButton} onPress={useCurrentLocation} disabled={locating}>
+                            {locating ? <ActivityIndicator size="small" color="#4B184C" /> : <LocateFixed size={18} color="#4B184C" />}
+                            <Text style={styles.locationButtonText}>{locating ? 'Finding your location...' : 'Use my current location'}</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.locationHelp}>Used to prioritize nearby venues and community results. Your precise coordinates are not shown publicly.</Text>
                     </View>
 
                     <View style={styles.inputGroup}>
@@ -170,6 +239,7 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 17, fontWeight: '700', color: '#1e293b' },
     cancelText: { color: '#64748b' },
+    disabledText: { color: '#94a3b8', fontWeight: '700' },
     saveText: { color: '#4B184C', fontWeight: '700' },
     scrollContent: { padding: 24 },
     avatarSection: { alignItems: 'center', marginBottom: 32 },
@@ -184,6 +254,9 @@ const styles = StyleSheet.create({
         gap: 8
     },
     changePicText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    gallerySection: { marginBottom: 26 }, galleryHeader: { marginBottom: 10 }, galleryHint: { color: '#94a3b8', fontSize: 12, marginTop: 3 },
+    addPhoto: { width: 82, height: 82, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: '#4B184C', alignItems: 'center', justifyContent: 'center', marginRight: 10 }, addPhotoText: { color: '#4B184C', fontWeight: '700', marginTop: 3 },
+    photoWrap: { marginRight: 10, position: 'relative' }, galleryPhoto: { width: 82, height: 82, borderRadius: 14 }, removePhoto: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(15,23,42,0.75)', borderRadius: 10, padding: 3 },
     form: { gap: 20 },
     inputGroup: { gap: 8 },
     label: { fontSize: 14, fontWeight: '600', color: '#64748b', marginLeft: 4 },
@@ -197,5 +270,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16
     },
     inputIcon: { marginRight: 12 },
-    input: { flex: 1, height: 50, color: '#1e293b', fontSize: 15 }
+    input: { flex: 1, height: 50, color: '#1e293b', fontSize: 15 },
+    designationList: { paddingBottom: 8, gap: 8 },
+    designationChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff' },
+    designationChipActive: { backgroundColor: '#4B184C', borderColor: '#4B184C' },
+    designationChipText: { color: '#475569', fontSize: 12, fontWeight: '700' },
+    designationChipTextActive: { color: '#fff' },
+    locationButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: '#e9d5ff', backgroundColor: '#fdf4ff', padding: 12, borderRadius: 14 }, locationButtonText: { color: '#4B184C', fontWeight: '800' }, locationHelp: { fontSize: 12, color: '#64748b', lineHeight: 18, marginHorizontal: 4 }
 });

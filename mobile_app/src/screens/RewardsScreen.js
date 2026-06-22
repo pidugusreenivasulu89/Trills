@@ -51,8 +51,8 @@ export default function RewardsScreen({ navigation }) {
                 const parsedUser = JSON.parse(userData);
                 setUser(parsedUser);
                 // In a real app, fetch fresh points from API
-                setPoints(parsedUser.points || 2450);
-                setTier(parsedUser.tier || 'Gold');
+                setPoints(Number.isFinite(Number(parsedUser.points)) ? Number(parsedUser.points) : 0);
+                setTier(parsedUser.tier || 'Silver');
             }
         } catch (error) {
             console.error('Error fetching rewards data:', error);

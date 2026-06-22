@@ -12,6 +12,19 @@ export async function OPTIONS() {
     return NextResponse.json({}, { headers: corsHeaders });
 }
 
+export async function GET(request) {
+    try {
+        await dbConnect();
+        const email = new URL(request.url).searchParams.get('email')?.toLowerCase();
+        if (!email) return NextResponse.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders });
+        const user = await User.findOne({ email }).select('name username email image photos verified designation location profileLocation interests isPrivate bio').lean();
+        if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404, headers: corsHeaders });
+        return NextResponse.json({ user }, { headers: corsHeaders });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to load profile' }, { status: 500, headers: corsHeaders });
+    }
+}
+
 export async function PATCH(request) {
     try {
         await dbConnect();
@@ -45,8 +58,10 @@ export async function PATCH(request) {
                 name: user.name,
                 email: user.email,
                 image: user.image,
+                photos: user.photos || [],
                 designation: user.designation,
                 location: user.location,
+                profileLocation: user.profileLocation,
                 interests: user.interests,
                 verified: user.verified,
                 isPrivate: user.isPrivate || false,

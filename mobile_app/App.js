@@ -1,9 +1,11 @@
-import React from 'react';
-import { Platform, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 // Auth Screens
 import WelcomeScreen from './src/screens/WelcomeScreen';
@@ -32,11 +34,17 @@ import UserProfileScreen from './src/screens/UserProfileScreen';
 import TermsScreen from './src/screens/TermsScreen';
 import RewardsScreen from './src/screens/RewardsScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import ConnectionsScreen from './src/screens/ConnectionsScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import BiometricUnlockScreen from './src/screens/BiometricUnlockScreen';
+import { isProfileComplete, normalizeUser, USER_STORAGE_KEY } from './src/utils/profileSession';
 
 import { Home as HomeIcon, Compass, Calendar, MessageSquare, User } from 'lucide-react-native';
+import AppErrorBoundary from './src/components/AppErrorBoundary';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
 
 function TabNavigator() {
     return (
@@ -150,38 +158,91 @@ const styles = {
 };
 
 export default function App() {
-    return (
-        <SafeAreaProvider>
-            <NavigationContainer>
-                <Stack.Navigator
-                    initialRouteName="Welcome"
-                    screenOptions={{ headerShown: false }}
-                >
-                    {/* Auth Screens */}
-                    <Stack.Screen name="Welcome" component={WelcomeScreen} />
-                    <Stack.Screen name="Login" component={LoginScreen} />
-                    <Stack.Screen name="Signup" component={SignupScreen} />
-                    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-                    <Stack.Screen name="Terms" component={TermsScreen} />
+    const [isBootstrapping, setIsBootstrapping] = useState(true);
+    const [initialRouteName, setInitialRouteName] = useState('Welcome');
 
-                    {/* Main App */}
-                    <Stack.Screen name="MainTabs" component={TabNavigator} />
-                    <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ headerShown: false, presentation: 'modal' }} />
-                    <Stack.Screen name="VenueDetail" component={VenueDetailScreen} options={{ headerShown: true, title: 'Venue Details' }} />
-                    <Stack.Screen name="Bookings" component={BookingsScreen} options={{ headerShown: true, title: 'My Bookings' }} />
-                    <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true, title: 'Settings' }} />
-                    <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
-                    <Stack.Screen name="Verification" component={VerificationScreen} options={{ headerShown: false }} />
-                    <Stack.Screen name="Payments" component={PaymentsScreen} options={{ headerShown: true, title: 'Payment Methods' }} />
-                    <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} options={{ headerShown: true, title: 'Privacy Settings' }} />
-                    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
-                    <Stack.Screen name="Comments" component={CommentsScreen} options={{ headerShown: false }} />
-                    <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
-                    <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: true, title: 'Notifications' }} />
-                    <Stack.Screen name="Rewards" component={RewardsScreen} options={{ headerShown: false }} />
-                    <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
-                </Stack.Navigator>
-            </NavigationContainer>
-        </SafeAreaProvider>
+    useEffect(() => {
+        const bootstrapNavigation = async () => {
+            try {
+                const [storedUser, onboardingComplete] = await Promise.all([
+                    AsyncStorage.getItem(USER_STORAGE_KEY),
+                    AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY),
+                ]);
+
+                if (storedUser) {
+                    const parsedUser = normalizeUser(JSON.parse(storedUser));
+                    await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
+                    const hasSessionIdentity = Boolean(parsedUser.email || parsedUser.phone || parsedUser._id || parsedUser.id);
+                    const canUseBiometrics = Platform.OS !== 'web'
+                        && hasSessionIdentity
+                        && await LocalAuthentication.hasHardwareAsync()
+                        && await LocalAuthentication.isEnrolledAsync();
+                    setInitialRouteName(canUseBiometrics ? 'BiometricUnlock' : (hasSessionIdentity ? 'MainTabs' : (isProfileComplete(parsedUser) ? 'MainTabs' : 'EditProfile')));
+                } else if (onboardingComplete === 'true') {
+                    setInitialRouteName('Login');
+                } else {
+                    setInitialRouteName('Welcome');
+                }
+            } catch (error) {
+                console.warn('Unable to restore app session:', error?.message || error);
+                setInitialRouteName('Welcome');
+            } finally {
+                setIsBootstrapping(false);
+            }
+        };
+
+        bootstrapNavigation();
+    }, []);
+
+    if (isBootstrapping) {
+        return (
+            <AppErrorBoundary>
+                <SafeAreaProvider>
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' }}>
+                        <ActivityIndicator size="large" color="#4B184C" />
+                    </View>
+                </SafeAreaProvider>
+            </AppErrorBoundary>
+        );
+    }
+
+    return (
+        <AppErrorBoundary>
+            <SafeAreaProvider>
+                <NavigationContainer>
+                    <Stack.Navigator
+                        initialRouteName={initialRouteName}
+                        screenOptions={{ headerShown: false }}
+                    >
+                        {/* Auth Screens */}
+                        <Stack.Screen name="Welcome" component={WelcomeScreen} />
+                        <Stack.Screen name="Login" component={LoginScreen} />
+                        <Stack.Screen name="BiometricUnlock" component={BiometricUnlockScreen} />
+                        <Stack.Screen name="Signup" component={SignupScreen} />
+                        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                        <Stack.Screen name="Terms" component={TermsScreen} />
+
+                        {/* Main App */}
+                        <Stack.Screen name="MainTabs" component={TabNavigator} />
+                        <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ headerShown: false, presentation: 'modal' }} />
+                        <Stack.Screen name="VenueDetail" component={VenueDetailScreen} options={{ headerShown: true, title: 'Venue Details' }} />
+                        <Stack.Screen name="Bookings" component={BookingsScreen} options={{ headerShown: true, title: 'My Bookings' }} />
+                        <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true, title: 'Settings' }} />
+                        <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="Verification" component={VerificationScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="Payments" component={PaymentsScreen} options={{ headerShown: true, title: 'Payment Methods' }} />
+                        <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} options={{ headerShown: true, title: 'Privacy Settings' }} />
+                        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="Comments" component={CommentsScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: true, title: 'Notifications' }} />
+                        <Stack.Screen name="Rewards" component={RewardsScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
+                        <Stack.Screen name="Connections" component={ConnectionsScreen} options={{ headerShown: true, title: 'Connections' }} />
+                        <Stack.Screen name="Chat" component={ChatScreen} options={({ route }) => ({ headerShown: true, title: route.params?.recipient?.name || 'Message' })} />
+                    </Stack.Navigator>
+                </NavigationContainer>
+            </SafeAreaProvider>
+        </AppErrorBoundary>
     );
 }

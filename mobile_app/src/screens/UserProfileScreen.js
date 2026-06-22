@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Dimensions, Alert, ActivityIndicator } from 'react-native';
-import { ArrowLeft, MessageCircle, UserPlus, MapPin, Link as LinkIcon, Grid, List, Check, Lock } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, UserPlus, MapPin, Grid, List, Check, Lock, UserMinus } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,7 +8,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width } = Dimensions.get('window');
 
 export default function UserProfileScreen({ navigation, route }) {
-    const { user, avatar, role, recipientEmail } = route.params || {};
+    const { user, avatar, role, recipientEmail, location, bio, photos = [] } = route.params || {};
+    const [profile, setProfile] = useState({
+        name: user,
+        avatar,
+        designation: role,
+        location,
+        bio,
+        photos,
+        email: recipientEmail,
+    });
     const [isConnected, setIsConnected] = useState(false);
     const [loading, setLoading] = useState(true);
     const [connectionCount, setConnectionCount] = useState(0);
@@ -20,6 +29,23 @@ export default function UserProfileScreen({ navigation, route }) {
     const fetchConnectionData = async () => {
         try {
             if (recipientEmail) {
+                try {
+                    const profileRes = await axios.get(`${ENDPOINTS.PROFILE_UPDATE}?email=${encodeURIComponent(recipientEmail)}`, { timeout: 8000 });
+                    const remote = profileRes.data?.user;
+                    if (remote) {
+                        setProfile(current => ({
+                            ...current,
+                            ...remote,
+                            name: remote.name || current.name,
+                            avatar: remote.image || remote.avatar || current.avatar,
+                            designation: remote.designation || current.designation,
+                            photos: Array.isArray(remote.photos) ? remote.photos : current.photos,
+                        }));
+                    }
+                } catch (profileError) {
+                    console.log('Profile fetch failed:', profileError?.message || profileError);
+                }
+
                 // Fetch connection count
                 const countRes = await axios.get(`${ENDPOINTS.CONNECTIONS}?email=${recipientEmail}`, { timeout: 5000 });
                 setConnectionCount(countRes.data.count || 0);
@@ -104,46 +130,56 @@ export default function UserProfileScreen({ navigation, route }) {
                 }
             } catch (e) { }
 
-            Alert.alert('Success', `Connection request sent to ${user}!`);
+            Alert.alert('Success', `Connection request sent to ${profile.name || 'this member'}!`);
         } catch (error) {
             console.log('Connect Error:', error);
             const existingStatus = error?.response?.data?.status;
-            if (existingStatus === 'accepted') {
+            if (existingStatus === 'accepted' || existingStatus === 'pending') {
                 setIsConnected(true);
-                setConnectionStatus('accepted');
-                try {
-                    const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
-                    const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
-                    const friend = {
-                        email: recipientEmail,
-                        name: user || recipientEmail?.split('@')[0] || 'Connection',
-                        avatar,
-                        acceptedAt: new Date().toISOString()
-                    };
-                    await AsyncStorage.setItem('accepted_connections', JSON.stringify([friend, ...acceptedList.filter(item => item.email !== recipientEmail)]));
-                    await AsyncStorage.setItem('friend_list', JSON.stringify([friend, ...acceptedList.filter(item => item.email !== recipientEmail)]));
-                } catch (e) { }
-                Alert.alert('Added to network', `${user || 'This member'} is already in your network.`);
+                setConnectionStatus(existingStatus);
+                if (existingStatus === 'accepted') {
+                    try {
+                        const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
+                        const acceptedList = acceptedRaw ? JSON.parse(acceptedRaw) : [];
+                        const connection = {
+                            email: recipientEmail,
+                            name: profile.name || recipientEmail?.split('@')[0] || 'Connection',
+                            avatar: profile.avatar,
+                            acceptedAt: new Date().toISOString()
+                        };
+                        await AsyncStorage.setItem('accepted_connections', JSON.stringify([connection, ...acceptedList.filter(item => item.email !== recipientEmail)]));
+                    } catch (e) { }
+                }
+                Alert.alert(existingStatus === 'accepted' ? 'Already connected' : 'Request pending', existingStatus === 'accepted' ? `${profile.name || 'This member'} is already in your connections.` : `Your request to ${profile.name || 'this member'} is already pending.`);
                 return;
             }
 
-            // Fallback for demo
-            setIsConnected(true);
-            setConnectionStatus('pending');
-            setConnectionCount(prev => prev + 1);
-
-            // Local sync even on error
-            try {
-                const storedPending = await AsyncStorage.getItem('pending_connections');
-                const pendingList = storedPending ? JSON.parse(storedPending) : [];
-                if (!pendingList.includes(recipientEmail)) {
-                    pendingList.push(recipientEmail);
-                    await AsyncStorage.setItem('pending_connections', JSON.stringify(pendingList));
-                }
-            } catch (e) { }
-
-            Alert.alert('Request Sent', `Connection request sent to ${user}! (Demo Mode)`);
+            Alert.alert('Could not send request', error?.response?.data?.error || 'Please try again when the profile is available.');
         }
+    };
+
+    const handleRemoveConnection = () => {
+        Alert.alert('Remove connection?', `Remove ${profile.name || 'this member'} from your connections?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Remove', style: 'destructive', onPress: async () => {
+                    try {
+                        const storedUser = await AsyncStorage.getItem('user');
+                        const requester = storedUser ? JSON.parse(storedUser) : null;
+                        const statusRes = await axios.get(`${ENDPOINTS.CONNECTIONS}?checkRecipientEmail=${recipientEmail}&requesterEmail=${requester?.email}`);
+                        if (statusRes.data.connectionId) {
+                            await axios.delete(ENDPOINTS.CONNECTIONS, { data: { connectionId: statusRes.data.connectionId, email: requester?.email } });
+                        }
+                    } catch (error) {
+                        console.warn('Remote disconnect failed; clearing local state.', error?.message);
+                    }
+                    const acceptedRaw = await AsyncStorage.getItem('accepted_connections');
+                    const accepted = acceptedRaw ? JSON.parse(acceptedRaw) : [];
+                    await AsyncStorage.setItem('accepted_connections', JSON.stringify(accepted.filter(item => item.email !== recipientEmail)));
+                    setIsConnected(false); setConnectionStatus(null); setConnectionCount(value => Math.max(0, value - 1));
+                }
+            }
+        ]);
     };
 
     // Updated stats with real data
@@ -153,12 +189,7 @@ export default function UserProfileScreen({ navigation, route }) {
         { label: 'Vibe Score', value: '92' },
     ];
 
-    const posts = [
-        'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=400',
-        'https://images.unsplash.com/photo-1502301103665-0b95cc738def?auto=format&fit=crop&q=80&w=400',
-        'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=400',
-        'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=400',
-    ];
+    const posts = Array.isArray(profile.photos) ? profile.photos : [];
 
     if (loading) {
         return (
@@ -175,7 +206,7 @@ export default function UserProfileScreen({ navigation, route }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <ArrowLeft size={24} color="#1e293b" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{user || 'Profile'}</Text>
+                <Text style={styles.headerTitle}>{profile.name || 'Profile'}</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -184,27 +215,27 @@ export default function UserProfileScreen({ navigation, route }) {
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <Image
-                            source={{ uri: avatar || 'https://i.pravatar.cc/300' }}
+                            source={{ uri: profile.avatar || 'https://i.pravatar.cc/300' }}
                             style={styles.avatar}
                         />
                         <View style={styles.onlineBadge} />
                     </View>
 
-                    <Text style={styles.name}>{user || 'Unknown User'}</Text>
-                    <Text style={styles.role}>{role || 'Community Member'}</Text>
+                    <Text style={styles.name}>{profile.name || 'Unknown User'}</Text>
+                    <Text style={styles.role}>{profile.designation || 'Community Member'}</Text>
 
                     <View style={styles.locationContainer}>
                         <MapPin size={14} color="#64748b" />
-                        <Text style={styles.location}>San Francisco, CA</Text>
+                        <Text style={styles.location}>{profile.location || 'Location not added'}</Text>
                     </View>
 
                     {/* Stats */}
                     <View style={styles.statsContainer}>
                         {stats.map((stat, index) => (
-                            <View key={index} style={styles.statItem}>
+                            <TouchableOpacity key={index} style={styles.statItem} onPress={() => index === 0 && navigation.navigate('Connections', { email: recipientEmail })}>
                                 <Text style={styles.statValue}>{stat.value}</Text>
                                 <Text style={styles.statLabel}>{stat.label}</Text>
-                            </View>
+                            </TouchableOpacity>
                         ))}
                     </View>
 
@@ -212,27 +243,26 @@ export default function UserProfileScreen({ navigation, route }) {
                     <View style={styles.actions}>
                         <TouchableOpacity
                             style={[styles.actionBtn, styles.primaryBtn, isConnected && styles.connectedBtn]}
-                            onPress={handleConnect}
-                            disabled={isConnected}
+                            onPress={connectionStatus === 'accepted' ? handleRemoveConnection : handleConnect}
+                            disabled={connectionStatus === 'pending'}
                         >
-                            {isConnected ? <Check size={20} color="#4B184C" /> : <UserPlus size={20} color="#fff" />}
+                            {connectionStatus === 'accepted' ? <UserMinus size={20} color="#4B184C" /> : isConnected ? <Check size={20} color="#4B184C" /> : <UserPlus size={20} color="#fff" />}
                             <Text style={[styles.btnText, isConnected && styles.connectedText]}>
-                                {isConnected ? (connectionStatus === 'pending' ? 'Request Sent' : 'Added to network') : 'Connect'}
+                                {connectionStatus === 'pending' ? 'Request Sent' : connectionStatus === 'accepted' ? 'Remove connection' : 'Connect'}
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={[styles.actionBtn, styles.secondaryBtn]}
-                            onPress={() => {
-                                console.log('Navigating to Notifications for updates:', user);
-                                navigation.navigate('Notifications');
-                            }}
+                            onPress={() => navigation.navigate('Chat', { recipient: { name: profile.name, email: recipientEmail, image: profile.avatar } })}
                         >
                             <MessageCircle size={20} color="#4B184C" />
                             <Text style={styles.secondaryBtnText}>Message</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
 
                 {/* Content Tabs */}
                 <View style={styles.contentSection}>
@@ -245,13 +275,13 @@ export default function UserProfileScreen({ navigation, route }) {
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.grid}>
+                    <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoScroller}>
                         {(isConnected && connectionStatus === 'accepted') ? (
-                            posts.map((img, index) => (
-                                <TouchableOpacity key={index} style={styles.gridItem}>
-                                    <Image source={{ uri: img }} style={styles.gridImage} />
-                                </TouchableOpacity>
-                            ))
+                            posts.length > 0 ? posts.map((img, index) => (
+                                <View key={index} style={styles.photoSlide}>
+                                    <Image source={{ uri: img }} style={styles.slideImage} />
+                                </View>
+                            )) : <View style={styles.privateOverlay}><Text style={styles.privateTitle}>No photos yet</Text><Text style={styles.privateSubtitle}>{profile.name || 'This member'} has not added profile photos.</Text></View>
                         ) : (
                             <View style={styles.privateOverlay}>
                                 <View style={styles.blurContainer}>
@@ -260,7 +290,7 @@ export default function UserProfileScreen({ navigation, route }) {
                                     </View>
                                     <Text style={styles.privateTitle}>Private Profile</Text>
                                     <Text style={styles.privateSubtitle}>
-                                        Connect with {user || 'this user'} to see their posts and professional updates.
+                                        Connect with {profile.name || 'this user'} to see their posts and professional updates.
                                     </Text>
                                     {(!isConnected || connectionStatus !== 'pending') && (
                                         <TouchableOpacity
@@ -273,7 +303,7 @@ export default function UserProfileScreen({ navigation, route }) {
                                 </View>
                             </View>
                         )}
-                    </View>
+                    </ScrollView>
                 </View>
 
             </ScrollView>
@@ -348,6 +378,7 @@ const styles = StyleSheet.create({
         color: '#64748b',
         fontSize: 14,
     },
+    bio: { marginHorizontal: 24, marginBottom: 10, color: '#475569', lineHeight: 21, textAlign: 'center' },
     statsContainer: {
         flexDirection: 'row',
         width: '100%',
@@ -439,6 +470,20 @@ const styles = StyleSheet.create({
     gridImage: {
         width: '100%',
         height: '100%',
+    },
+    photoScroller: {
+        minWidth: '100%',
+    },
+    photoSlide: {
+        width,
+        paddingHorizontal: 20,
+        paddingBottom: 24,
+    },
+    slideImage: {
+        width: '100%',
+        height: 460,
+        borderRadius: 28,
+        backgroundColor: '#f1f5f9',
     },
     privateOverlay: {
         width: '100%',

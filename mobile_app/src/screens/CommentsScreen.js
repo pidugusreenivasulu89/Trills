@@ -1,25 +1,88 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Send, X } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { ENDPOINTS } from '../api/config';
+
+const formatTime = (value) => {
+    if (!value) return 'Just now';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Just now';
+    const diffMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
+    return date.toLocaleDateString();
+};
+
+const normalizeComments = (items) => Array.isArray(items)
+    ? items.map((item, index) => ({
+        id: item.id || item._id || `${index}`,
+        user: item.user || item.name || item.email?.split('@')[0] || 'Member',
+        text: item.text || '',
+        time: item.time || formatTime(item.createdAt),
+        createdAt: item.createdAt,
+    })).filter(item => item.text)
+    : [];
 
 export default function CommentsScreen({ route, navigation }) {
     const { postId, user, content } = route.params;
     const [comment, setComment] = useState('');
-    const [comments, setComments] = useState([
-        { id: 1, user: 'Elena', text: 'Totally agree! The ergonomics are great too.', time: '2h ago' },
-        { id: 2, user: 'David', text: 'Is it crowded in the afternoons?', time: '1h ago' },
-    ]);
+    const [comments, setComments] = useState(normalizeComments(route.params?.comments));
+    const [currentUser, setCurrentUser] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-    const handleSend = () => {
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const storedUser = await AsyncStorage.getItem('user');
+                setCurrentUser(storedUser ? JSON.parse(storedUser) : null);
+            } catch (error) { }
+
+            try {
+                setLoading(true);
+                const response = await axios.get(`${ENDPOINTS.POSTS}/${postId}`, { timeout: 8000 });
+                setComments(normalizeComments(response.data?.comments));
+            } catch (error) {
+                console.log('Unable to load comments:', error?.response?.data || error?.message || error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        load();
+    }, [postId]);
+
+    const handleSend = async () => {
         if (!comment.trim()) return;
+        const userName = currentUser?.name || currentUser?.email?.split('@')[0] || 'You';
         const newComm = {
             id: Date.now(),
-            user: 'Sreenivasulu',
+            user: userName,
             text: comment,
             time: 'Just now'
         };
+        const text = comment;
         setComments([...comments, newComm]);
         setComment('');
+
+        try {
+            if (!currentUser?.email) return;
+            const response = await axios.patch(`${ENDPOINTS.POSTS}/${postId}`, {
+                action: 'comment',
+                text,
+                user: {
+                    email: currentUser.email,
+                    name: currentUser.name,
+                    avatar: currentUser.avatar || currentUser.image,
+                    verified: currentUser.verified,
+                }
+            }, { timeout: 8000 });
+            setComments(normalizeComments(response.data?.comments));
+        } catch (error) {
+            console.log('Unable to persist comment:', error?.response?.data || error?.message || error);
+        }
     };
 
     return (
@@ -39,6 +102,10 @@ export default function CommentsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.divider} />
+
+                {loading && comments.length === 0 && (
+                    <ActivityIndicator color="#4B184C" style={{ marginTop: 20 }} />
+                )}
 
                 {comments.map(item => (
                     <View key={item.id} style={styles.commentItem}>

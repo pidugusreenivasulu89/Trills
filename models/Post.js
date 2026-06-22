@@ -28,8 +28,8 @@ const PostSchema = new mongoose.Schema({
         default: [],
     },
     comments: {
-        type: Number,
-        default: 0,
+        type: mongoose.Schema.Types.Mixed,
+        default: [],
     },
     type: {
         type: String,

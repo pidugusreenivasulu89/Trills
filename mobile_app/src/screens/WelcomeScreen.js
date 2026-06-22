@@ -12,9 +12,11 @@ import {
     Easing,
     Image
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Heart, Users, Calendar, Shield, ArrowRight } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
+const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
 
 const onboardingData = [
     {
@@ -84,11 +86,21 @@ export default function WelcomeScreen({ navigation }) {
                 animated: true,
             });
         } else {
-            navigation.replace('Login');
+            handleOnboardingComplete();
         }
     };
 
     const handleSkip = () => {
+        handleOnboardingComplete();
+    };
+
+    const handleOnboardingComplete = async () => {
+        try {
+            await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+        } catch (error) {
+            console.warn('Unable to persist onboarding completion:', error?.message || error);
+        }
+
         navigation.replace('Login');
     };
 

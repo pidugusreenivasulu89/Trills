@@ -19,16 +19,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
     const [topVenues, setTopVenues] = useState([]);
-    const [loyaltyData, setLoyaltyData] = useState({ points: 2450, tier: 'Gold' });
+    const [loyaltyData, setLoyaltyData] = useState({ points: 0, tier: 'Silver' });
     const [user, setUser] = useState(null);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
     const scrollY = React.useRef(new Animated.Value(0)).current;
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
     const slideAnim = React.useRef(new Animated.Value(30)).current;
 
     useEffect(() => {
         fetchTopVenues();
-        fetchLoyaltyData();
-        const unsubscribe = navigation.addListener('focus', fetchLoyaltyData);
+        const refreshHome = () => {
+            fetchLoyaltyData();
+            fetchUnreadNotifications();
+        };
+        refreshHome();
+        const unsubscribe = navigation.addListener('focus', refreshHome);
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
@@ -60,11 +65,24 @@ export default function HomeScreen({ navigation }) {
                 const parsedUser = JSON.parse(userData);
                 setUser(parsedUser);
                 setLoyaltyData({
-                    points: parsedUser.points || 2450,
+                    points: Number.isFinite(Number(parsedUser.points)) ? Number(parsedUser.points) : 0,
                     tier: parsedUser.tier || 'Silver'
                 });
             }
         } catch (e) { console.log(e); }
+    };
+
+    const fetchUnreadNotifications = async () => {
+        try {
+            const userData = await AsyncStorage.getItem('user');
+            if (!userData) return setUnreadNotifications(0);
+            const userEmail = JSON.parse(userData).email;
+            const response = await axios.get(`${ENDPOINTS.NOTIFICATIONS}?email=${encodeURIComponent(userEmail)}`, { timeout: 8000 });
+            const items = Array.isArray(response.data) ? response.data : [];
+            setUnreadNotifications(items.filter(item => !item.read).length);
+        } catch (error) {
+            setUnreadNotifications(0);
+        }
     };
 
     return (
@@ -89,7 +107,11 @@ export default function HomeScreen({ navigation }) {
                         onPress={() => navigation.navigate('Notifications')}
                     >
                         <Bell size={24} color="#4B184C" />
-                        <View style={styles.notifBadge} />
+                        {unreadNotifications > 0 && (
+                            <View style={styles.notifBadge}>
+                                <Text style={styles.notifBadgeText}>{unreadNotifications > 99 ? '99+' : unreadNotifications}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -341,13 +363,17 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 8,
         right: 8,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
         backgroundColor: '#C026D3',
         borderWidth: 2,
         borderColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 3,
     },
+    notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
     hero: {
         padding: 24,
         paddingTop: 32,

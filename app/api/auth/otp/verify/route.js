@@ -41,7 +41,15 @@ export async function POST(request) {
             email: user.email,
             phone: user.phone,
             image: user.image,
+            avatar: user.image,
+            photos: user.photos || [],
             verified: user.verified,
+            designation: user.designation,
+            location: user.location,
+            profileLocation: user.profileLocation,
+            bio: user.bio,
+            isPrivate: user.isPrivate || false,
+            role: user.role || 'user',
             createdAt: user.createdAt
         };
 

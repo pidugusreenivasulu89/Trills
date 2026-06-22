@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, SafeAreaVi
 import { Star, Search, Users, Clock, Briefcase } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ExploreScreen({ navigation }) {
     const [venues, setVenues] = useState([]);
@@ -11,9 +12,17 @@ export default function ExploreScreen({ navigation }) {
     const [spaceFilter, setSpaceFilter] = useState('any');
     const [seatFilter, setSeatFilter] = useState('any');
     const [timeFilter, setTimeFilter] = useState('any');
+    const [profileLocation, setProfileLocation] = useState('');
 
     useEffect(() => {
         fetchVenues();
+        const loadProfileLocation = async () => {
+            const stored = await AsyncStorage.getItem('user');
+            if (stored) setProfileLocation(JSON.parse(stored).location || '');
+        };
+        loadProfileLocation();
+        const unsubscribe = navigation.addListener('focus', loadProfileLocation);
+        return unsubscribe;
     }, []);
 
     const fetchVenues = async () => {
@@ -53,6 +62,11 @@ export default function ExploreScreen({ navigation }) {
         const matchesTime = timeFilter === 'any' || venue.tables?.some(asset => asset.slots?.includes(timeFilter));
 
         return matchesType && matchesSearch && matchesSpace && matchesSeats && matchesTime;
+    }).sort((a, b) => {
+        if (!profileLocation) return 0;
+        const terms = profileLocation.toLowerCase().split(',').map(value => value.trim()).filter(value => value.length > 2);
+        const score = venue => terms.some(term => `${venue.address || ''} ${venue.location || ''}`.toLowerCase().includes(term)) ? 1 : 0;
+        return score(b) - score(a);
     });
 
     const renderAssetLabel = (asset) => {
@@ -66,6 +80,14 @@ export default function ExploreScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Explore</Text>
+                {profileLocation ? (
+                    <Text style={styles.locationNote}>Showing nearby matches first for {profileLocation}</Text>
+                ) : (
+                    <TouchableOpacity style={styles.locationPrompt} onPress={() => navigation.navigate('EditProfile')}>
+                        <Text style={styles.locationPromptTitle}>Add your location</Text>
+                        <Text style={styles.locationPromptText}>Complete your profile to see nearby spaces first.</Text>
+                    </TouchableOpacity>
+                )}
                 <View style={styles.searchBar}>
                     <Search size={20} color="#94a3b8" />
                     <TextInput
@@ -193,6 +215,9 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     header: { padding: 24, backgroundColor: '#fff' },
     title: { fontSize: 28, fontWeight: '800', marginBottom: 20, color: '#0f172a' },
+    locationNote: { color: '#64748b', marginTop: -12, marginBottom: 14, fontSize: 12 },
+    locationPrompt: { backgroundColor: '#fdf4ff', borderColor: '#f5d0fe', borderWidth: 1, borderRadius: 14, padding: 13, marginTop: -10, marginBottom: 14 },
+    locationPromptTitle: { color: '#4B184C', fontWeight: '900' }, locationPromptText: { color: '#64748b', fontSize: 12, marginTop: 3 },
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', padding: 12, borderRadius: 12, marginBottom: 16 },
     searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: '#0f172a' },
     filters: { flexDirection: 'row' },

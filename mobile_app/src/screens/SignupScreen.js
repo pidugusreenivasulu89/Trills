@@ -5,7 +5,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     TextInput,
-    Dimensions,
     Animated,
     KeyboardAvoidingView,
     Platform,
@@ -18,14 +17,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, Eye, EyeOff, User, Phone, AtSign, CheckCircle, XCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
-import * as WebBrowser from 'expo-web-browser';
 
 // No redirect URIs needed for native SDKs
 
 // API base URL
 import { API_BASE_URL } from '../api/config';
+import { getGoogleSignInErrorMessage, signInWithGoogleNative } from '../utils/nativeSocialAuth';
+import { signInWithFacebook } from '../utils/facebookOAuth';
+import { routeAfterLogin } from '../utils/profileSession';
+
+const isWeb = Platform.OS === 'web';
 
 export default function SignupScreen({ navigation }) {
     const [name, setName] = useState('');
@@ -51,15 +52,6 @@ export default function SignupScreen({ navigation }) {
             bounciness: 10,
         }).start();
     };
-
-    // Configure Google Sign-In
-    React.useEffect(() => {
-        GoogleSignin.configure({
-            // IMPORTANT: Use the "Web Application" client ID here, NOT the iOS or Android one.
-            webClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com', 
-            offlineAccess: true,
-        });
-    }, []);
 
     // Social responses now handled directly by button handlers
 
@@ -89,10 +81,7 @@ export default function SignupScreen({ navigation }) {
             const response = await axios.post(`${API_BASE_URL}/users/social-auth`, payload);
 
             if (response.data && response.data.user) {
-                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-                setTimeout(() => {
-                    navigation.replace('MainTabs', { screen: 'Feed' });
-                }, 100);
+                await routeAfterLogin(navigation, response.data.user);
             } else {
                 Alert.alert('Signup Failed', 'Failed to synchronize with server');
             }
@@ -164,12 +153,7 @@ export default function SignupScreen({ navigation }) {
             console.log('Signup success:', response.data);
 
             if (response.data && response.data.user) {
-                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-
-                // A slight delay prevents native modal dismissal timing issues
-                setTimeout(() => {
-                    navigation.replace('MainTabs', { screen: 'Feed' });
-                }, 100);
+                await routeAfterLogin(navigation, response.data.user);
             } else {
                 Alert.alert('Registration Failed', 'User data missing from response');
             }
@@ -194,25 +178,22 @@ export default function SignupScreen({ navigation }) {
         }
 
         if (provider === 'Google') {
+            if (isWeb) {
+                Alert.alert('Signup Error', 'Google signup is available in the mobile app.');
+                return;
+            }
+
             try {
                 setLoadingProvider('google');
-                await GoogleSignin.hasPlayServices();
-                const userInfo = await GoogleSignin.signIn();
-                const tokens = await GoogleSignin.getTokens();
-                handleSocialBackendLogin('google', tokens.accessToken);
+                const { accessToken } = await signInWithGoogleNative();
+                handleSocialBackendLogin('google', accessToken);
             } catch (error) {
                 setLoadingProvider(null);
                 console.error('Google Signup Error:', error);
-                
-                let detailedError = error.message || 'Unknown error';
-                if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-                    return; // User cancelled
-                } else if (error.code === statusCodes.IN_PROGRESS) {
-                    detailedError = 'Signup already in progress';
-                } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-                    detailedError = 'Play Services not available or outdated';
-                } else {
-                    detailedError = `Code: ${error.code || 'None'} - ${error.message}. This is usually Google Developer Error 10. Verify package name 'in.trills.socialvibe' and register the correct SHA-1 in Google Console: debug builds use 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25, release builds use 60:03:82:FA:F2:1B:58:6E:0A:A1:73:79:BA:3B:53:E7:24:19:49:F1. Also confirm the webClientId is a Web Application client ID.`;
+
+                const detailedError = getGoogleSignInErrorMessage(error, 'Signup already in progress');
+                if (!detailedError) {
+                    return;
                 }
                 
                 Alert.alert('Signup Error', `Failed to initialize Google login session:\n\n${detailedError}`);
@@ -220,22 +201,15 @@ export default function SignupScreen({ navigation }) {
         } else if (provider === 'Facebook') {
             try {
                 setLoadingProvider('facebook');
-                const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-                if (result.isCancelled) {
-                    setLoadingProvider(null);
-                    console.log('Facebook Signup Cancelled');
-                } else {
-                    const data = await AccessToken.getCurrentAccessToken();
-                    if (data?.accessToken) {
-                        handleSocialBackendLogin('facebook', data.accessToken.toString());
-                    } else {
-                        throw new Error('Could not get Facebook access token');
-                    }
-                }
+                const accessToken = await signInWithFacebook();
+                handleSocialBackendLogin('facebook', accessToken);
             } catch (error) {
                 setLoadingProvider(null);
                 console.error('Facebook Signup Error:', error);
-                Alert.alert('Signup Error', error.message || 'Failed to sign up with Facebook');
+                Alert.alert(
+                    'Signup Error',
+                    `${error.message || 'Failed to sign up with Facebook'}\n\nConfirm Facebook Login allows this redirect URI: https://trills.in/auth/facebook/callback`
+                );
             }
         }
     };

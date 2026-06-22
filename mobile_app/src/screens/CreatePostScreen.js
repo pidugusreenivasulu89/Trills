@@ -25,11 +25,17 @@ export default function CreatePostScreen({ navigation }) {
 
     useEffect(() => {
         const loadUser = async () => {
-            const userData = await AsyncStorage.getItem('user');
-            if (userData) {
-                setUser(JSON.parse(userData));
-            } else {
+            try {
+                const userData = await AsyncStorage.getItem('user');
+                const parsedUser = userData ? JSON.parse(userData) : null;
+                if (parsedUser && typeof parsedUser === 'object') {
+                    setUser(parsedUser);
+                    return;
+                }
                 Alert.alert('Login Required', 'Please login to post.');
+                navigation.goBack();
+            } catch (error) {
+                Alert.alert('Login Required', 'Please login again before posting.');
                 navigation.goBack();
             }
         };
@@ -41,11 +47,16 @@ export default function CreatePostScreen({ navigation }) {
             Alert.alert('Error', 'Post content cannot be empty.');
             return;
         }
+        if (!user || !user.email) {
+            Alert.alert('Login Required', 'Please login again before posting.');
+            navigation.goBack();
+            return;
+        }
 
         try {
             setIsLoading(true);
             const payload = {
-                user: user.name || user.email.split('@')[0],
+                user: user.name || user.email.split('@')[0] || 'Trills Member',
                 email: user.email,
                 avatar: user.image || user.avatar || `https://i.pravatar.cc/150?u=${user.email}`,
                 content: content.trim(),

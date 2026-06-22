@@ -38,7 +38,11 @@ export async function POST(request) {
         const { action, notification } = body;
 
         if (action === 'markRead') {
-            await Notification.updateMany({ read: false }, { $set: { read: true } });
+            const recipientEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+            if (!recipientEmail) {
+                return NextResponse.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders });
+            }
+            await Notification.updateMany({ recipientEmail, read: false }, { $set: { read: true } });
             return NextResponse.json({ message: 'Notifications marked as read' }, { headers: corsHeaders });
         }
 

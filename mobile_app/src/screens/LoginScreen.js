@@ -5,7 +5,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     TextInput,
-    Dimensions,
     Animated,
     Image,
     KeyboardAvoidingView,
@@ -17,19 +16,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-// Native SDKs only for Play Store
-
-WebBrowser.maybeCompleteAuthSession();
 
 import axios from 'axios';
 import { API_BASE_URL } from '../api/config';
+import { getGoogleSignInErrorMessage, signInWithGoogleNative } from '../utils/nativeSocialAuth';
+import { signInWithFacebook } from '../utils/facebookOAuth';
+import { routeAfterLogin } from '../utils/profileSession';
 
-const { width, height } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
 
 // Native SDKs don't require manual redirect URI management here
 
@@ -49,33 +43,7 @@ export default function LoginScreen({ navigation }) {
     const [isOtpSent, setIsOtpSent] = useState(false);
     const otpInputs = useRef([]);
 
-    // Expo Google Auth Request - Corrected Client IDs
-    const [request, response, promptAsync] = Google.useAuthRequest({
-        androidClientId: "1001936941616-mcde8fevdm089p65p5jch23efdgsq158.apps.googleusercontent.com",
-        iosClientId: "1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com",
-        // Do NOT use iosClientId as webClientId - they are different types.
-        // If you have a Web Client ID from Google Console, add it here.
-        scheme: "trillsauth",
-    });
-
-    // Configure Google Sign-In
-    React.useEffect(() => {
-        GoogleSignin.configure({
-            // IMPORTANT: Use the "Web Application" client ID here, NOT the iOS or Android one.
-            webClientId: '1001936941616-m4m2f9bad6edsppqm7dkjp68rtauk7dc.apps.googleusercontent.com', 
-            offlineAccess: true, 
-        });
-    }, []);
-
-    // Unified handleResponse replaced by direct button handlers for native SDK
-
-    // Facebook Auth is now handled directly by LoginManager (native)
-    // No need for useAuthRequest hook here
-
-    // Consolidate response handling
-    // No useEffect needed for native SDK flow
-
-    // Facebook Response useEffect removed as it's now handled by the native Promise in handleSocialLogin
+    // Social auth is handled by native SDKs at button press time.
 
     const handleSocialBackendLogin = async (provider, token) => {
         try {
@@ -125,12 +93,7 @@ export default function LoginScreen({ navigation }) {
 
             if (response.data && response.data.user) {
                 console.log('[SocialAuth] Sync successful, saving user and navigating...');
-                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-                
-                // Small delay to ensure state is settled before navigation
-                setTimeout(() => {
-                    navigation.replace('MainTabs');
-                }, 100);
+                await routeAfterLogin(navigation, response.data.user);
             } else {
                 console.error('[SocialAuth] Backend response missing user object:', response.data);
                 throw new Error('Server response was successful but user data is missing');
@@ -163,18 +126,6 @@ export default function LoginScreen({ navigation }) {
             bounciness: 10,
         }).start();
     };
-
-    React.useEffect(() => {
-        if (response?.type === 'success') {
-            const { authentication } = response;
-            console.log('Google Auth Session success:', authentication.accessToken ? 'Yes' : 'No');
-            handleSocialBackendLogin('google', authentication.accessToken);
-        } else if (response?.type === 'error') {
-            console.error('Google Auth Session error:', response.error);
-            Alert.alert('Login Error', 'Failed to sign in with Google');
-            setLoadingProvider(null);
-        }
-    }, [response]);
 
     React.useEffect(() => {
         Animated.parallel([
@@ -215,12 +166,7 @@ export default function LoginScreen({ navigation }) {
             console.log('Login success data:', response.data);
 
             if (response.data && response.data.user) {
-                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-                
-                // Small delay ensures storage and UI states are settled before navigation
-                setTimeout(() => {
-                    navigation.replace('MainTabs');
-                }, 100);
+                await routeAfterLogin(navigation, response.data.user);
             } else {
                 Alert.alert('Login Failed', 'User data missing from response');
             }
@@ -242,33 +188,25 @@ export default function LoginScreen({ navigation }) {
         if (provider === 'Google') {
             try {
                 setLoadingProvider('google');
-                
-                // Now that Error 10 is gone, we can use the much more reliable Native SDK
+
+                if (isWeb) {
+                    Alert.alert('Login Error', 'Google login is available in the mobile app.');
+                    return;
+                }
+
                 console.log('Starting Native Google Sign-In...');
-                await GoogleSignin.hasPlayServices();
-                const userInfo = await GoogleSignin.signIn();
-                console.log('Native Google Sign-In Success:', userInfo.user.email);
-                
-                const tokens = await GoogleSignin.getTokens();
-                handleSocialBackendLogin('google', tokens.accessToken);
-                
-                /* Backup: Expo Auth Session flow
-                await promptAsync();
-                */
+                const { accessToken, userInfo } = await signInWithGoogleNative();
+                const googleUser = userInfo?.user || userInfo?.data?.user;
+                console.log('Native Google Sign-In Success:', googleUser?.email || 'Google user');
+
+                handleSocialBackendLogin('google', accessToken);
             } catch (error) {
                 setLoadingProvider(null);
                 console.error('Google Auth Error:', error);
-                
-                let detailedError = error.message || 'Unknown error';
-                if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-                    return; // User cancelled
-                } else if (error.code === statusCodes.IN_PROGRESS) {
-                    detailedError = 'Sign in already in progress';
-                } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-                    detailedError = 'Play Services not available or outdated';
-                } else {
-                    // Error 10 is most often a package name / SHA-1 mismatch on Android.
-                    detailedError = `Code: ${error.code || 'None'} - ${error.message}. This is usually Google Developer Error 10. Verify package name 'in.trills.socialvibe' and register the correct SHA-1 in Google Console: debug builds use 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25, release builds use 60:03:82:FA:F2:1B:58:6E:0A:A1:73:79:BA:3B:53:E7:24:19:49:F1. Also confirm the webClientId is a Web Application client ID.`;
+
+                const detailedError = getGoogleSignInErrorMessage(error);
+                if (!detailedError) {
+                    return;
                 }
                 
                 Alert.alert('Login Error', `Failed to initialize Google login session:\n\n${detailedError}`);
@@ -276,23 +214,16 @@ export default function LoginScreen({ navigation }) {
         } else if (provider === 'Facebook') {
             try {
                 setLoadingProvider('facebook');
-                const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-                if (result.isCancelled) {
-                    setLoadingProvider(null);
-                    console.log('Facebook Sign-In Cancelled');
-                } else {
-                    const data = await AccessToken.getCurrentAccessToken();
-                    if (data?.accessToken) {
-                        console.log('Facebook Sign-In Success token:', data.accessToken.substring(0, 10) + '...');
-                        handleSocialBackendLogin('facebook', data.accessToken.toString());
-                    } else {
-                        throw new Error('Could not get Facebook access token');
-                    }
-                }
+                const accessToken = await signInWithFacebook();
+                console.log('Facebook Sign-In Success token:', accessToken.substring(0, 10) + '...');
+                handleSocialBackendLogin('facebook', accessToken);
             } catch (error) {
                 setLoadingProvider(null);
                 console.error('Facebook Sign-In Error:', error);
-                Alert.alert('Login Error', error.message || 'Failed to sign in with Facebook');
+                Alert.alert(
+                    'Login Error',
+                    `${error.message || 'Failed to sign in with Facebook'}\n\nConfirm Facebook Login allows this redirect URI: https://trills.in/auth/facebook/callback`
+                );
             }
         }
     };
@@ -335,12 +266,7 @@ export default function LoginScreen({ navigation }) {
 
             if (response.data && response.data.user) {
                 console.log('OTP Verified, saving user data...');
-                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-                
-                // Small delay to ensure storage is settled
-                setTimeout(() => {
-                    navigation.replace('MainTabs');
-                }, 100);
+                await routeAfterLogin(navigation, response.data.user);
             } else {
                 Alert.alert('Error', 'Invalid user data received from server');
             }

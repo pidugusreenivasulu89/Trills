@@ -20,11 +20,14 @@ import {
     Star,
     Users,
     Calendar,
-    LayoutDashboard
+    LayoutDashboard,
+    Briefcase,
+    MapPin
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
+import { refreshStoredUserProfile } from '../utils/profileSession';
 
 export default function ProfileScreen({ navigation }) {
     const [user, setUser] = useState(null);
@@ -32,8 +35,8 @@ export default function ProfileScreen({ navigation }) {
         connections: 0,
         events: 0,
         vibeScore: 0,
-        points: 2450,
-        tier: 'Gold'
+        points: 0,
+        tier: 'Silver'
     });
     const [loading, setLoading] = useState(true);
 
@@ -54,7 +57,8 @@ export default function ProfileScreen({ navigation }) {
         try {
             const userData = await AsyncStorage.getItem('user');
             if (userData) {
-                const parsedUser = JSON.parse(userData);
+                let parsedUser = JSON.parse(userData);
+                parsedUser = await refreshStoredUserProfile(parsedUser);
                 setUser(parsedUser);
 
                 // Fetch real connection count
@@ -62,12 +66,12 @@ export default function ProfileScreen({ navigation }) {
                     const response = await axios.get(`${ENDPOINTS.CONNECTIONS}?email=${parsedUser.email}`, { timeout: 5000 });
                     let connCount = response.data.count || 0;
 
-                    // Add accepted local friends when the API is behind or unavailable.
+                    // Use locally cached connections while the API catches up.
                     try {
                         const localAccepted = await AsyncStorage.getItem('accepted_connections');
                         if (localAccepted) {
                             const list = JSON.parse(localAccepted);
-                            connCount += list.length;
+                            connCount = Math.max(connCount, list.length);
                         }
                     } catch (e) { }
 
@@ -75,7 +79,7 @@ export default function ProfileScreen({ navigation }) {
                         const newStats = {
                             ...prev,
                             connections: connCount,
-                            points: parsedUser.points || (2450 + (connCount * 10)),
+                            points: Number.isFinite(Number(parsedUser.points)) ? Number(parsedUser.points) : 0,
                             tier: parsedUser.tier || 'Silver',
                         };
                         return {
@@ -86,12 +90,12 @@ export default function ProfileScreen({ navigation }) {
                 } catch (err) {
                     console.log('Error fetching connections:', err);
 
-                    // Even on error, show local accepted friend count.
-                    let localCount = 124; // Base demo count
+                    // On error, show the locally cached connection count.
+                    let localCount = 0;
                     try {
                         const localAccepted = await AsyncStorage.getItem('accepted_connections');
                         if (localAccepted) {
-                            localCount += JSON.parse(localAccepted).length;
+                            localCount = JSON.parse(localAccepted).length;
                         }
                     } catch (e) { }
 
@@ -126,6 +130,8 @@ export default function ProfileScreen({ navigation }) {
     };
 
     const menuItems = [
+        { label: 'Edit Profile', target: 'EditProfile', icon: <Users size={20} color="#4B184C" /> },
+        { label: 'Friends List', target: 'Connections', icon: <Users size={20} color="#4B184C" /> },
         { label: 'My Bookings', target: 'Bookings', icon: <Calendar size={20} color="#4B184C" /> },
         { label: 'Trills Rewards', target: 'Rewards', icon: <Star size={20} color="#4B184C" /> },
         { label: 'Payment Methods', target: 'Payments', icon: <Star size={20} color="#4B184C" /> },
@@ -178,14 +184,40 @@ export default function ProfileScreen({ navigation }) {
                         <Text style={styles.tierText}>{stats.tier} Member</Text>
                     </View>
                     <Text style={styles.username}>@{user?.username || 'user'}</Text>
+                    <View style={styles.detailPills}>
+                        {!!user?.designation && (
+                            <View style={styles.detailPill}>
+                                <Briefcase size={14} color="#4B184C" />
+                                <Text style={styles.detailPillText}>{user.designation}</Text>
+                            </View>
+                        )}
+                        {!!user?.location && (
+                            <View style={styles.detailPill}>
+                                <MapPin size={14} color="#4B184C" />
+                                <Text style={styles.detailPillText}>{user.location}</Text>
+                            </View>
+                        )}
+                    </View>
+                    {!!user?.bio && <Text style={styles.bio}>{user.bio}</Text>}
                 </View>
+
+                {Array.isArray(user?.photos) && user.photos.length > 0 && (
+                    <View style={styles.photosSection}>
+                        <Text style={styles.sectionTitle}>Profile photos</Text>
+                        <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+                            {user.photos.map((photo, index) => (
+                                <Image key={`${photo.slice(0, 24)}-${index}`} source={{ uri: photo }} style={styles.profilePhotoSlide} />
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
 
                 {/* Stats Container */}
                 <View style={styles.statsContainer}>
-                    <View style={styles.statItem}>
+                    <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('Connections', { email: user?.email })}>
                         <Text style={styles.statValue}>{stats.connections}</Text>
-                        <Text style={styles.statLabel}>Friends</Text>
-                    </View>
+                        <Text style={styles.statLabel}>Connections</Text>
+                    </TouchableOpacity>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>{stats.points}</Text>
@@ -219,6 +251,16 @@ export default function ProfileScreen({ navigation }) {
                             </View>
                             <ChevronRight size={20} color="#fff" />
                         </LinearGradient>
+                    </TouchableOpacity>
+                )}
+
+                {(!user?.image || !user?.location || !user?.bio) && (
+                    <TouchableOpacity style={styles.profilePrompt} onPress={() => navigation.navigate('EditProfile')}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.profilePromptTitle}>Complete your profile</Text>
+                            <Text style={styles.profilePromptText}>Add your photo, bio and location for better nearby recommendations.</Text>
+                        </View>
+                        <ChevronRight size={20} color="#4B184C" />
                     </TouchableOpacity>
                 )}
 
@@ -304,6 +346,13 @@ const styles = StyleSheet.create({
     tierText: { fontSize: 13, fontWeight: '800', color: '#86198f', textTransform: 'uppercase' },
     name: { fontSize: 26, fontWeight: '900', color: '#0f172a', marginTop: 10, letterSpacing: -0.5 },
     username: { fontSize: 15, color: '#64748b', marginTop: 2, fontWeight: '500' },
+    detailPills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 14, paddingHorizontal: 18 },
+    detailPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#fdf4ff', borderWidth: 1, borderColor: '#f5d0fe' },
+    detailPillText: { color: '#4B184C', fontSize: 12, fontWeight: '800' },
+    bio: { color: '#475569', lineHeight: 20, textAlign: 'center', marginTop: 12, paddingHorizontal: 24 },
+    photosSection: { marginTop: 22, marginBottom: 4 },
+    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginHorizontal: 24, marginBottom: 12 },
+    profilePhotoSlide: { width: 330, height: 420, borderRadius: 28, marginLeft: 24, marginRight: 8, backgroundColor: '#f1f5f9' },
     statusBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, marginTop: 12 },
     statusText: { fontSize: 13, fontWeight: '700' },
 
@@ -328,6 +377,9 @@ const styles = StyleSheet.create({
     nudgeContent: { flex: 1, marginLeft: 15 },
     nudgeTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
     nudgeSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, lineHeight: 18 },
+    profilePrompt: { marginHorizontal: 24, marginBottom: 20, padding: 18, borderRadius: 18, backgroundColor: '#fdf4ff', borderWidth: 1, borderColor: '#f5d0fe', flexDirection: 'row', alignItems: 'center', gap: 12 },
+    profilePromptTitle: { color: '#4B184C', fontSize: 16, fontWeight: '900' },
+    profilePromptText: { color: '#64748b', marginTop: 4, lineHeight: 18, fontSize: 12 },
 
     menu: { paddingHorizontal: 24 },
     menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },

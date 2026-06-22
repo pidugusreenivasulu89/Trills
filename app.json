@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "8d3a61a2-64e4-4717-93b8-1c4d63ea4cf5"
+      }
+    },
+    "android": {
+      "package": "in.trills.socialvibe"
+    }
+  }
+}

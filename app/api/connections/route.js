@@ -142,7 +142,7 @@ export async function GET(request) {
                     { requester: recipientId, recipient: requester._id }
                 ]
             });
-            return NextResponse.json({ connected: !!conn, status: conn?.status || null }, { headers: corsHeaders });
+            return NextResponse.json({ connected: !!conn, status: conn?.status || null, connectionId: conn?._id || null }, { headers: corsHeaders });
         }
 
         if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400, headers: corsHeaders });
@@ -158,13 +158,19 @@ export async function GET(request) {
             return NextResponse.json(requests, { headers: corsHeaders });
         }
 
+        if (type === 'sent_requests') {
+            const requests = await Connection.find({ requester: user._id, status: 'pending' })
+                .populate('recipient', 'name email image photos verified designation location bio isPrivate isBot');
+            return NextResponse.json(requests, { headers: corsHeaders });
+        }
+
         if (type === 'connections') {
             const connections = await Connection.find({
                 $or: [
                     { requester: user._id, status: 'accepted' },
                     { recipient: user._id, status: 'accepted' }
                 ]
-            }).populate('requester recipient', 'name email image verified designation location isPrivate isBot');
+            }).populate('requester recipient', 'name email image photos verified designation location bio isPrivate isBot');
 
             const normalized = connections
                 .map((connection) => {
@@ -214,6 +220,9 @@ export async function PATCH(request) {
         await dbConnect();
         const body = await request.json();
         const { connectionId, status, requesterEmail, recipientEmail } = body;
+        if (!['accepted', 'rejected'].includes(status)) {
+            return NextResponse.json({ error: 'Invalid connection status' }, { status: 400, headers: corsHeaders });
+        }
 
         let query = {};
         if (connectionId) {
@@ -235,8 +244,27 @@ export async function PATCH(request) {
             return NextResponse.json({ error: 'Connection not found' }, { status: 404, headers: corsHeaders });
         }
 
+        if (connection.status !== 'pending') {
+            return NextResponse.json({ error: 'This connection request has already been handled' }, { status: 409, headers: corsHeaders });
+        }
+
         connection.status = status;
         await connection.save();
+
+        await Notification.updateMany(
+            {
+                recipientEmail: connection.recipient.email,
+                senderEmail: connection.requester.email,
+                type: 'friend_request'
+            },
+            {
+                $set: {
+                    read: true,
+                    type: status === 'accepted' ? 'connection_accepted' : 'connection_declined',
+                    content: status === 'accepted' ? 'Connection request accepted.' : 'Connection request declined.'
+                }
+            }
+        );
 
         if (status === 'accepted') {
             await Notification.create({
@@ -256,5 +284,30 @@ export async function PATCH(request) {
     } catch (error) {
         console.error('Connections PATCH Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers: corsHeaders });
+    }
+}
+
+export async function DELETE(request) {
+    try {
+        await dbConnect();
+        const { connectionId, email } = await request.json();
+        if (!connectionId || !email) {
+            return NextResponse.json({ error: 'Connection and user are required' }, { status: 400, headers: corsHeaders });
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404, headers: corsHeaders });
+
+        const connection = await Connection.findOne({
+            _id: connectionId,
+            $or: [{ requester: user._id }, { recipient: user._id }],
+        });
+        if (!connection) return NextResponse.json({ error: 'Connection not found' }, { status: 404, headers: corsHeaders });
+
+        await connection.deleteOne();
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+    } catch (error) {
+        console.error('Connections DELETE Error:', error);
+        return NextResponse.json({ error: 'Failed to remove connection' }, { status: 500, headers: corsHeaders });
     }
 }
