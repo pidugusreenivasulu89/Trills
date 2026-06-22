@@ -24,7 +24,7 @@
     },
     "android": {
       "package": "in.trills.socialvibe",
-      "versionCode": 326,
+      "versionCode": 327,
       "intentFilters": [
         {
           "action": "VIEW",
