@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { ENDPOINTS } from '../api/config';
 import { Alert } from 'react-native';
-import { DESIGNATION_OPTIONS, saveUserSession } from '../utils/profileSession';
+import { DESIGNATION_OPTIONS, getStableAvatar, saveUserSession } from '../utils/profileSession';
 
 export default function EditProfileScreen({ navigation, route }) {
     const isRequired = route?.params?.required;
@@ -34,7 +34,7 @@ export default function EditProfileScreen({ navigation, route }) {
                     setLocation(parsed.location || '');
                     setBio(parsed.bio || '');
                     // Normalize avatar
-                    setAvatar(parsed.avatar || parsed.image || 'https://i.pravatar.cc/150?u=me');
+                    setAvatar(getStableAvatar(parsed));
                     setPhotos(parsed.photos || []);
                     setProfileLocation(parsed.profileLocation || null);
                 }

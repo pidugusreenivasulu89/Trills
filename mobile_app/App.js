@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -47,6 +47,9 @@ const Stack = createNativeStackNavigator();
 const ONBOARDING_COMPLETE_KEY = 'onboarding_complete';
 
 function TabNavigator() {
+    const insets = useSafeAreaInsets();
+    const bottomInset = Math.max(insets.bottom, 8);
+
     return (
         <Tab.Navigator
             screenOptions={{
@@ -55,8 +58,8 @@ function TabNavigator() {
                 tabBarStyle: {
                     backgroundColor: '#ffffff',
                     borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 90 : 70,
-                    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+                    height: 64 + bottomInset,
+                    paddingBottom: bottomInset,
                     paddingTop: 10,
                     elevation: 20,
                     shadowColor: '#4B184C',
@@ -65,8 +68,9 @@ function TabNavigator() {
                     shadowRadius: 12,
                     borderTopLeftRadius: 25,
                     borderTopRightRadius: 25,
-                    position: 'absolute',
-                    bottom: 0,
+                },
+                sceneContainerStyle: {
+                    backgroundColor: '#ffffff',
                 },
                 tabBarActiveTintColor: '#4B184C',
                 tabBarInactiveTintColor: '#94a3b8',
@@ -235,7 +239,7 @@ export default function App() {
                         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="Comments" component={CommentsScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ headerShown: false }} />
-                        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: true, title: 'Notifications' }} />
+                        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="Rewards" component={RewardsScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
                         <Stack.Screen name="Connections" component={ConnectionsScreen} options={{ headerShown: true, title: 'Connections' }} />

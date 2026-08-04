@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     FlatList,
     Image,
     TouchableOpacity,
@@ -12,6 +11,7 @@ import {
     StatusBar,
     Alert
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserPlus, Calendar, CheckCircle, Bell, Trash2, Heart, MessageSquare } from 'lucide-react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,6 +32,7 @@ export default function NotificationsScreen({ navigation }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const insets = useSafeAreaInsets();
 
     const markAllRead = async (items = notifications) => {
         const userData = await AsyncStorage.getItem('user');
@@ -172,20 +173,20 @@ export default function NotificationsScreen({ navigation }) {
                     });
                 }
 
-                // Update local UI
-                setNotifications(notifications.map(n =>
-                    n._id === notif._id
-                        ? {
-                            ...n,
-                            read: true,
-                            type: status === 'accepted' ? 'connection_accepted' : 'connection_declined',
-                            content: status === 'accepted' ? 'Connection added.' : 'Connection request declined.'
-                        }
-                        : n
-                ));
-
                 if (status === 'accepted') {
+                    setNotifications(current => current.filter(n => (n._id || n.id) !== (notif._id || notif.id)));
                     Alert.alert('Success', `${notif.userName || 'This member'} added to your network.`);
+                } else {
+                    setNotifications(current => current.map(n =>
+                        (n._id || n.id) === (notif._id || notif.id)
+                            ? {
+                                ...n,
+                                read: true,
+                                type: 'connection_declined',
+                                content: 'Connection request declined.'
+                            }
+                            : n
+                    ));
                 }
             }
         } catch (error) {
@@ -234,14 +235,14 @@ export default function NotificationsScreen({ navigation }) {
 
     if (loading) {
         return (
-            <View style={styles.loaderContainer}>
+            <SafeAreaView style={styles.loaderContainer} edges={['top', 'right', 'bottom', 'left']}>
                 <ActivityIndicator size="large" color="#4B184C" />
-            </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <View>
@@ -262,7 +263,7 @@ export default function NotificationsScreen({ navigation }) {
                 data={notifications}
                 keyExtractor={item => item._id || item.id}
                 renderItem={renderNotification}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[styles.listContent, { paddingBottom: Math.max(insets.bottom, 16) }]}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4B184C']} />
                 }

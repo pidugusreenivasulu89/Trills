@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpacity, Share, TextInput, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Heart, MessageCircle, Share2, Star, UserPlus, Zap, Check, CheckCircle, MoreVertical, Plus } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { getStableAvatar } from '../utils/profileSession';
 
-const FALLBACK_AVATAR = 'https://i.pravatar.cc/150?u=trills-member';
+const FALLBACK_AVATAR = getStableAvatar({ email: 'trills-member@trills.in', name: 'Trills Member' });
 
 const DEFAULT_POSTS = [
-    { id: 'default1', type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: 'https://i.pravatar.cc/150?u=alex', content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10!', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
-    { id: 'default2', type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: 'https://i.pravatar.cc/150?u=sophia', content: 'Found this amazing hidden gem for brunch!', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
+    { id: 'default1', type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: getStableAvatar({ email: 'alex@trills.com', name: 'Alex Rivera' }), content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10!', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
+    { id: 'default2', type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: getStableAvatar({ email: 'sophia@trills.com', name: 'Sophia Miller' }), content: 'Found this amazing hidden gem for brunch!', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
 ];
 
 const safeText = (value, fallback = '') => {
@@ -66,7 +68,7 @@ const normalizePost = (rawPost, index) => {
         type,
         user,
         email,
-        avatar: safeUrl(post.avatar || post.user?.avatar || post.user?.image, `${FALLBACK_AVATAR}-${encodeURIComponent(email)}`),
+        avatar: safeUrl(post.avatar || post.user?.avatar || post.user?.image, getStableAvatar({ email, name: user }) || FALLBACK_AVATAR),
         content: safeText(post.content || post.description, ''),
         title: safeText(post.title, 'Featured offer'),
         description: safeText(post.description || post.content, ''),
@@ -94,17 +96,18 @@ const formatPostDate = (value) => {
 };
 
 export default function FeedScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [posts, setPosts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const recommendedPros = [
-        { id: 101, name: 'Elena R.', email: 'elena@trills.com', role: 'Product Manager @ Meta', avatar: 'https://i.pravatar.cc/150?u=elena' },
-        { id: 102, name: 'David S.', email: 'david@trills.com', role: 'VC @ a16z', avatar: 'https://i.pravatar.cc/150?u=david' },
-        { id: 103, name: 'Jessica K.', email: 'jessica@trills.com', role: 'UX Designer @ Google', avatar: 'https://i.pravatar.cc/150?u=jessica' },
-        { id: 104, name: 'Sreeni V', email: 'sreeni@trills.com', role: 'Tech Lead @ Trills', avatar: 'https://i.pravatar.cc/150?u=sreeni' },
-        { id: 105, name: 'Priya M.', email: 'priya@trills.com', role: 'Founder @ HealthStack', avatar: 'https://i.pravatar.cc/150?u=priya' },
-        { id: 106, name: 'Chris W.', email: 'chris@trills.com', role: 'Software Engineer', avatar: 'https://i.pravatar.cc/150?u=chris' },
+        { id: 101, name: 'Elena R.', email: 'elena@trills.com', role: 'Product Manager @ Meta', avatar: getStableAvatar({ email: 'elena@trills.com', name: 'Elena R.' }) },
+        { id: 102, name: 'David S.', email: 'david@trills.com', role: 'VC @ a16z', avatar: getStableAvatar({ email: 'david@trills.com', name: 'David S.' }) },
+        { id: 103, name: 'Jessica K.', email: 'jessica@trills.com', role: 'UX Designer @ Google', avatar: getStableAvatar({ email: 'jessica@trills.com', name: 'Jessica K.' }) },
+        { id: 104, name: 'Sreeni V', email: 'sreeni@trills.com', role: 'Tech Lead @ Trills', avatar: getStableAvatar({ email: 'sreeni@trills.com', name: 'Sreeni V' }) },
+        { id: 105, name: 'Priya M.', email: 'priya@trills.com', role: 'Founder @ HealthStack', avatar: getStableAvatar({ email: 'priya@trills.com', name: 'Priya M.' }) },
+        { id: 106, name: 'Chris W.', email: 'chris@trills.com', role: 'Software Engineer', avatar: getStableAvatar({ email: 'chris@trills.com', name: 'Chris W.' }) },
     ];
 
     const [editingPostId, setEditingPostId] = useState(null);
@@ -125,8 +128,8 @@ export default function FeedScreen({ navigation }) {
                 const fetchedPosts = response.data;
                 if (fetchedPosts.length === 0) {
                     setPosts([
-                        { id: 'default1', type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: 'https://i.pravatar.cc/150?u=alex', content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10! ☕️💻', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
-                        { id: 'default2', type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: 'https://i.pravatar.cc/150?u=sophia', content: 'Found this amazing hidden gem for brunch! 🥑🥪', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
+                        { id: 'default1', type: 'post', user: 'Alex Rivera', email: 'alex@trills.com', avatar: getStableAvatar({ email: 'alex@trills.com', name: 'Alex Rivera' }), content: 'Just booked a desk at Nexus Co-working. The atmosphere here is 10/10! ☕️💻', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=1000', likes: 24, liked: false, comments: 3 },
+                        { id: 'default2', type: 'post', user: 'Sophia Miller', email: 'sophia@trills.com', avatar: getStableAvatar({ email: 'sophia@trills.com', name: 'Sophia Miller' }), content: 'Found this amazing hidden gem for brunch! 🥑🥪', image: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&q=80&w=1000', likes: 89, liked: false, comments: 12 },
                     ]);
                 } else {
                     setPosts(fetchedPosts);
@@ -426,6 +429,7 @@ export default function FeedScreen({ navigation }) {
             ) : (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: 132 + Math.max(insets.bottom, 8) }]}
                     refreshControl={
                         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#4B184C']} />
                     }
@@ -615,13 +619,12 @@ export default function FeedScreen({ navigation }) {
                             </View>
                         );
                     })}
-                    <View style={{ height: 100 }} />
                 </ScrollView>
             )}
 
             {/* Floating Action Button */}
             <TouchableOpacity
-                style={styles.fab}
+                style={[styles.fab, { bottom: 86 + Math.max(insets.bottom, 8) }]}
                 onPress={() => navigation.navigate('CreatePost')}
                 accessibilityLabel="Create a post"
             >
@@ -635,7 +638,8 @@ export default function FeedScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fcfcfc' },
     header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    title: { fontSize: 24, fontWeight: '900', color: '#1e293b' },
+    title: { fontSize: 26, fontWeight: '900', color: '#111827' },
+    scrollContent: { paddingBottom: 140 },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 12, color: '#64748b', fontWeight: '600' },
     emptyContainer: { padding: 60, alignItems: 'center', justifyContent: 'center' },
@@ -657,14 +661,14 @@ const styles = StyleSheet.create({
     sentText: { color: '#4B184C' },
 
     // Post Card
-    card: { backgroundColor: '#fff', marginBottom: 12, padding: 20 },
+    card: { backgroundColor: '#fff', marginHorizontal: 14, marginBottom: 16, padding: 18, borderRadius: 22, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#4B184C', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 18, elevation: 3 },
     postHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 },
     author: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-    avatar: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
-    name: { fontWeight: '800', fontSize: 16, color: '#1e293b' },
-    timestamp: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
-    content: { fontSize: 15, color: '#334155', lineHeight: 22, marginBottom: 15 },
-    postImg: { width: '100%', height: 250, borderRadius: 20, marginBottom: 10 },
+    avatar: { width: 48, height: 48, borderRadius: 24, marginRight: 12, borderWidth: 2, borderColor: '#fdf4ff' },
+    name: { fontWeight: '900', fontSize: 17, color: '#111827' },
+    timestamp: { fontSize: 12, color: '#94a3b8', marginTop: 3, fontWeight: '600' },
+    content: { fontSize: 17, color: '#1f2937', lineHeight: 26, marginBottom: 16, fontWeight: '500' },
+    postImg: { width: '100%', height: 270, borderRadius: 18, marginBottom: 10 },
     actions: { flexDirection: 'row', marginTop: 15, alignItems: 'center', gap: 25 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     actionNum: { color: '#64748b', fontSize: 14, fontWeight: '600' },

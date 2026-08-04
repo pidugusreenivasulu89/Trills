@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     Shield,
@@ -30,6 +31,7 @@ import { ENDPOINTS } from '../api/config';
 import { refreshStoredUserProfile } from '../utils/profileSession';
 
 export default function ProfileScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({
         connections: 0,
@@ -149,7 +151,7 @@ export default function ProfileScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 112 + Math.max(insets.bottom, 8) }}>
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.title}>My Profile</Text>

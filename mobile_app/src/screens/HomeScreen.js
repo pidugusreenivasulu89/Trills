@@ -6,9 +6,9 @@ import {
     StyleSheet,
     Image,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Star, ArrowRight, Quote, Users, MapPin, Zap, Award, Bell } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [topVenues, setTopVenues] = useState([]);
     const [loyaltyData, setLoyaltyData] = useState({ points: 0, tier: 'Silver' });
     const [user, setUser] = useState(null);
@@ -86,9 +87,9 @@ export default function HomeScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <StatusBar barStyle="dark-content" />
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 112 + Math.max(insets.bottom, 8) }}>
                 {/* Header */}
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>

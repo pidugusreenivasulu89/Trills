@@ -10,11 +10,13 @@ import {
     StatusBar,
     ActivityIndicator
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, MapPin, ArrowRight, Clock } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 
 export default function EventsScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +48,7 @@ export default function EventsScreen({ navigation }) {
                     <ActivityIndicator size="large" color="#4B184C" />
                 </View>
             ) : (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: 112 + Math.max(insets.bottom, 8) }]}>
                     {events.length === 0 ? (
                         <View style={styles.emptyState}>
                             <Calendar size={48} color="#cbd5e1" />
@@ -93,7 +95,6 @@ export default function EventsScreen({ navigation }) {
                             </TouchableOpacity>
                         ))
                     )}
-                    <View style={{ height: 100 }} />
                 </ScrollView>
             )}
         </SafeAreaView>

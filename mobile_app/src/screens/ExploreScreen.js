@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Star, Search, Users, Clock, Briefcase } from 'lucide-react-native';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ExploreScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [venues, setVenues] = useState([]);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -174,7 +176,7 @@ export default function ExploreScreen({ navigation }) {
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.list}>
+            <ScrollView contentContainerStyle={[styles.list, { paddingBottom: 128 + Math.max(insets.bottom, 8) }]}>
                 {filtered.map(venue => (
                     <TouchableOpacity key={venue.id || venue._id} style={styles.card} onPress={() => navigation.navigate('VenueDetail', { venue })}>
                         <Image source={{ uri: venue.image }} style={styles.cardImg} />

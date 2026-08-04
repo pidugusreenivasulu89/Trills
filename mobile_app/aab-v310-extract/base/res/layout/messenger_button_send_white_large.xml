@@ -1,0 +1,11 @@
+
+º
+;
+android*http://schemas.android.com/apk/res/androidFrameLayout"`style"@style/MessengerButton.White.Large"2/
+-³‚¼ø!style/MessengerButton.White.Large0ÿÿ"{
+*http://schemas.android.com/apk/res/androidid@+id/messenger_send_button"(Ğ„2$
+"¯‚ øid/messenger_send_button0*
+…TextView"hstyle&@style/MessengerButtonText.White.Large"23
+1º‚¼ø%style/MessengerButtonText.White.Large0ÿÿ"
+*http://schemas.android.com/apk/res/androidtext"@string/messenger_send_button_text"(Ï‚„2-
++°¸ø!string/messenger_send_button_text0

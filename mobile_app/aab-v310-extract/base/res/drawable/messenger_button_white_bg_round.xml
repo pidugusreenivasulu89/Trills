@@ -1,0 +1,36 @@
+
+ö
+;
+android*http://schemas.android.com/apk/res/android
+I
+layer-list*¸
+¯item"¦
+*http://schemas.android.com/apk/res/androiddrawable,@drawable/messenger_button_send_round_shadow"(™ƒ„27
+5»œø+drawable/messenger_button_send_round_shadow0K*¿
+¶item"F
+*http://schemas.android.com/apk/res/androidtop1dp"(®ƒ„2:h"G
+*http://schemas.android.com/apk/res/androidleft1dp"(­ƒ„2:h"I
+*http://schemas.android.com/apk/res/androidbottom2dp"(°ƒ„2:h"H
+*http://schemas.android.com/apk/res/androidright1dp"(¯ƒ„2:h*‡
+şselector* 
+—item"P
+*http://schemas.android.com/apk/res/androidstate_pressedtrue"(§„2:@*¼
+³shape"H
+*http://schemas.android.com/apk/res/androidshapeoval"(šƒ„2:0*`
+Xsolid"O
+*http://schemas.android.com/apk/res/androidcolor#ebebeb"(¥ƒ„2:Pë×¯ÿ,%**Î
+Åitem*¼
+³shape"H
+*http://schemas.android.com/apk/res/androidshapeoval"(šƒ„2:0*`
+Xsolid"O
+*http://schemas.android.com/apk/res/androidcolor#ffffff"(¥ƒ„2:Pÿÿÿÿ,%*­
+¤item"F
+*http://schemas.android.com/apk/res/androidtop1dp"&(®ƒ„2:h"G
+*http://schemas.android.com/apk/res/androidleft1dp"&(­ƒ„2:h"I
+*http://schemas.android.com/apk/res/androidbottom2dp"&(°ƒ„2:h"H
+*http://schemas.android.com/apk/res/androidright1dp"&(¯ƒ„2:h*õ
+ìbitmap"“
+*http://schemas.android.com/apk/res/androidsrc%@drawable/messenger_bubble_large_blue"*(™‚„20
+.µœø$drawable/messenger_bubble_large_blue0"L
+*http://schemas.android.com/apk/res/androidgravitycenter"*(¯„2:8*	&
+I

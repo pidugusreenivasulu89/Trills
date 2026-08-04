@@ -17,9 +17,9 @@ export async function GET(request) {
         await dbConnect();
         const email = new URL(request.url).searchParams.get('email')?.toLowerCase();
         if (!email) return NextResponse.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders });
-        const user = await User.findOne({ email }).select('name username email image photos verified designation location profileLocation interests isPrivate bio').lean();
+        const user = await User.findOne({ email }).select('name username email image photos verified designation location profileLocation interests isPrivate bio role points tier createdAt').lean();
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404, headers: corsHeaders });
-        return NextResponse.json({ user }, { headers: corsHeaders });
+        return NextResponse.json({ user: { ...user, avatar: user.image || '' } }, { headers: corsHeaders });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to load profile' }, { status: 500, headers: corsHeaders });
     }
@@ -35,11 +35,12 @@ export async function PATCH(request) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400, headers: corsHeaders });
         }
 
-        // Map frontend fields (avatar) to backend fields (image) if necessary
-        if (updateData.avatar) {
+        // Map frontend fields (avatar) to backend fields (image) without clearing an existing photo accidentally.
+        if (typeof updateData.avatar === 'string' && updateData.avatar.trim()) {
             updateData.image = updateData.avatar;
-            delete updateData.avatar;
         }
+        delete updateData.avatar;
+        if (typeof updateData.image === 'string' && !updateData.image.trim()) delete updateData.image;
 
         const user = await User.findOneAndUpdate(
             { email: email.toLowerCase() },
@@ -58,6 +59,7 @@ export async function PATCH(request) {
                 name: user.name,
                 email: user.email,
                 image: user.image,
+                avatar: user.image,
                 photos: user.photos || [],
                 designation: user.designation,
                 location: user.location,
@@ -65,7 +67,11 @@ export async function PATCH(request) {
                 interests: user.interests,
                 verified: user.verified,
                 isPrivate: user.isPrivate || false,
-                bio: user.bio
+                bio: user.bio,
+                role: user.role || 'user',
+                points: user.points ?? 0,
+                tier: user.tier || 'Silver',
+                createdAt: user.createdAt
             }
         }, { headers: corsHeaders });
     } catch (error) {

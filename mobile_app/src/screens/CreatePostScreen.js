@@ -16,6 +16,7 @@ import { X, Image as ImageIcon, Globe, Smile } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
+import { getStableAvatar } from '../utils/profileSession';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CreatePostScreen({ navigation }) {
@@ -58,7 +59,7 @@ export default function CreatePostScreen({ navigation }) {
             const payload = {
                 user: user.name || user.email.split('@')[0] || 'Trills Member',
                 email: user.email,
-                avatar: user.image || user.avatar || `https://i.pravatar.cc/150?u=${user.email}`,
+                avatar: getStableAvatar(user),
                 content: content.trim(),
                 type: 'post'
             };
@@ -106,7 +107,7 @@ export default function CreatePostScreen({ navigation }) {
                 <View style={styles.contentContainer}>
                     <View style={styles.userInfo}>
                         <Image
-                            source={{ uri: user?.image || user?.avatar || 'https://i.pravatar.cc/150?u=temp' }}
+                            source={{ uri: getStableAvatar(user || {}) }}
                             style={styles.avatar}
                         />
                         <View>

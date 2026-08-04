@@ -4,6 +4,16 @@ import { ENDPOINTS } from '../api/config';
 
 export const USER_STORAGE_KEY = 'user';
 
+const isUsableImage = (value) => typeof value === 'string' && value.trim().length > 0;
+
+export const getStableAvatar = (user = {}) => {
+    const candidate = user.customImage || user.image || user.avatar || user.socialImage || user.picture;
+    if (isUsableImage(candidate)) return candidate.trim();
+
+    const seed = encodeURIComponent((user.email || user.username || user.name || 'trills-member').toLowerCase().trim());
+    return `https://ui-avatars.com/api/?name=${seed}&background=4B184C&color=fff&bold=true&size=256`;
+};
+
 export const DESIGNATION_OPTIONS = [
     'Founder / Co-Founder',
     'Chief Executive Officer',
@@ -38,7 +48,7 @@ export const DESIGNATION_OPTIONS = [
 ];
 
 export const normalizeUser = (user = {}) => {
-    const image = user.image || user.avatar || '';
+    const image = getStableAvatar(user);
     return {
         ...user,
         image,
@@ -97,8 +107,14 @@ export const refreshStoredUserProfile = async (user) => {
 
     try {
         const response = await axios.get(`${ENDPOINTS.PROFILE_UPDATE}?email=${encodeURIComponent(normalized.email)}`, { timeout: 8000 });
-        const remoteUser = response.data?.user ? normalizeUser(response.data.user) : {};
-        const savedUser = await saveUserSession({ ...normalized, ...remoteUser });
+        const remoteUser = response.data?.user ? response.data.user : {};
+        const merged = {
+            ...normalized,
+            ...remoteUser,
+            image: isUsableImage(remoteUser.image) ? remoteUser.image : normalized.image,
+            avatar: isUsableImage(remoteUser.avatar) ? remoteUser.avatar : normalized.avatar,
+        };
+        const savedUser = await saveUserSession(merged);
         await syncConnectionCache(savedUser.email);
         return savedUser;
     } catch (error) {
